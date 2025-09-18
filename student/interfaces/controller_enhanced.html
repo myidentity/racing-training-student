@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Student Controller - Interactive Racing Training</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea, #764ba2);
+            --success-color: #00ff88;
+            --warning-color: #ffd700;
+            --danger-color: #ff4444;
+            --info-color: #00bbff;
+            --dark-bg: #0f1419;
+            --card-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* Connection Status Bar */
+        .connection-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--danger-color);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .connection-bar.connecting {
+            background: var(--warning-color);
+            animation: pulse-bar 1.5s infinite;
+        }
+
+        .connection-bar.connected {
+            background: var(--success-color);
+        }
+
+        @keyframes pulse-bar {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-top: 20px;
+        }
+
+        /* Enhanced Header */
+        .header {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--primary-gradient);
+        }
+
+        .header-content {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .student-identity {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            color: white;
+            font-weight: bold;
+        }
+
+        .student-details h2 {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .student-id {
+            color: #666;
+            font-size: 0.9em;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Enhanced Car Assignment Card */
+        .car-assignment-card {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            padding: 15px 25px;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 187, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .car-assignment-card::after {
+            content: '🏎️';
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2em;
+            opacity: 0.3;
+        }
+
+        .car-label {
+            font-size: 0.8em;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .car-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        /* Connection Status Card */
+        .status-card {
+            background: var(--card-bg);
+            padding: 15px 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .status-indicator {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .status-indicator.disconnected {
+            background: rgba(255, 68, 68, 0.2);
+            border: 2px solid var(--danger-color);
+        }
+
+        .status-indicator.connecting {
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid var(--warning-color);
+            animation: rotate 2s linear infinite;
+        }
+
+        .status-indicator.connected {
+            background: rgba(0, 255, 136, 0.2);
+            border: 2px solid var(--success-color);
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-indicator.connected .status-dot {
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connecting .status-dot {
+            background: var(--warning-color);
+        }
+
+        .status-indicator.disconnected .status-dot {
+            background: var(--danger-color);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .status-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .status-label {
+            font-size: 0.8em;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-text {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-text.connected { color: var(--success-color); }
+        .status-text.connecting { color: var(--warning-color); }
+        .status-text.disconnected { color: var(--danger-color); }
+
+        /* Main Control Grid */
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 968px) {
+            .control-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Enhanced Panels */
+        .panel {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .panel-title {
+            font-size: 1.3em;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-icon {
+            font-size: 1.2em;
+        }
+
+        .panel-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .panel-status.synced {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--success-color);
+        }
+
+        .panel-status.modified {
+            background: rgba(255, 215, 0, 0.2);
+            color: #ff9800;
+        }
+
+        /* Enhanced Control Groups */
+        .control-group {
+            margin-bottom: 30px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .label-text {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tooltip {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            cursor: help;
+            position: relative;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            margin-bottom: 5px;
+            z-index: 100;
+        }
+
+        .control-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* Enhanced Slider */
+        .slider-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 10px;
+            background: #e2e8f0;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+            transition: transform 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+            transition: transform 0.2s ease;
+        }
+
+        .slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .slider-track {
+            position: absolute;
+            height: 8px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            transition: width 0.2s ease;
+        }
+
+        .slider-limits {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        /* Algorithm Selector */
+        .algorithm-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .algorithm-option {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .algorithm-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: var(--primary-gradient);
+            transition: width 0.3s ease;
+            opacity: 0.1;
+        }
+
+        .algorithm-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .algorithm-option:hover::before {
+            width: 100%;
+        }
+
+        .algorithm-option.selected {
+            border-color: #667eea;
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Real-time Telemetry Display */
+        .telemetry-panel {
+            background: var(--dark-bg);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .telemetry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .telemetry-title {
+            color: var(--success-color);
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .telemetry-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--success-color);
+            font-size: 0.9em;
+        }
+
+        .recording-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger-color);
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .telemetry-content {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            height: 200px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .telemetry-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .telemetry-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .telemetry-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 136, 0.3);
+            border-radius: 3px;
+        }
+
+        .telemetry-line {
+            color: rgba(0, 255, 136, 0.7);
+            margin-bottom: 4px;
+            padding: 2px 0;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .telemetry-line.latest {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .telemetry-timestamp {
+            color: rgba(0, 187, 255, 0.8);
+            margin-right: 10px;
+        }
+
+        /* Action Buttons */
+        .action-panel {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #00cc66);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color), #ff0000);
+            color: white;
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.3);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, var(--info-color), #0099ff);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 187, 255, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Submit Status Feedback */
+        .submit-feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .submit-feedback.success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .submit-feedback.error {
+            background: rgba(255, 68, 68, 0.1);
+            border: 2px solid var(--danger-color);
+            color: var(--danger-color);
+        }
+
+        /* Lock Indicator */
+        .lock-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            z-index: 10;
+        }
+
+        .lock-overlay.active {
+            display: flex;
+        }
+
+        .lock-message {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .lock-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .lock-text {
+            color: #333;
+            font-weight: 600;
+        }
+
+        /* Performance Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--success-color);
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.8em;
+            color: rgba(0, 255, 136, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .algorithm-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Connection Status Bar -->
+    <div class="connection-bar" id="connectionBar"></div>
+
+    <div class="container">
+        <!-- Enhanced Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="student-identity">
+                    <div class="avatar" id="studentAvatar">S1</div>
+                    <div class="student-details">
+                        <h2 id="studentName">Student-001</h2>
+                        <div class="student-id">ID: <span id="studentId">STU-A1B2C3</span></div>
+                    </div>
+                </div>
+
+                <div class="car-assignment-card">
+                    <div class="car-label">Assigned Vehicle</div>
+                    <div class="car-number">Car <span id="carNumber">1</span></div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-grid">
+                        <div class="status-indicator disconnected" id="connectionIndicator">
+                            <div class="status-dot"></div>
+                        </div>
+                        <div class="status-info">
+                            <div class="status-label">Connection</div>
+                            <div class="status-text disconnected" id="connectionText">Disconnected</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Control Grid -->
+        <div class="control-grid">
+            <!-- PID Control Panel -->
+            <div class="panel">
+                <div class="lock-overlay" id="pidLockOverlay">
+                    <div class="lock-message">
+                        <div class="lock-icon">🔒</div>
+                        <div class="lock-text">Parameters Locked by Supervisor</div>
+                    </div>
+                </div>
+
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <span class="panel-icon">⚙️</span>
+                        PID Controller
+                    </h3>
+                    <span class="panel-status synced" id="pidStatus">SYNCED</span>
+                </div>
+
+                <!-- Proportional Gain -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="label-text">
+                            Proportional (Kp)
+                            <span class="tooltip" data-tip="How strongly to correct for current error">?</span>
+                        </span>
+                        <span class="control-value" id="kpValue">1.0</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="kpSlider"
+                               min="0" max="5" step="0.1" value="1.0">
+                        <div class="slider-track" id="kpTrack"></div>
+                    </div>
+                    <div class="slider-limits">
+                        <span>0</span>
+                        <span>Conservative</span>
+                        <span>Aggressive</span>
+                        <span>5</span>
+                    </div>
+                </div>
+
+                <!-- Integral Gain -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="label-text">
+                            Integral (Ki)
+                            <span class="tooltip" data-tip="Corrects for accumulated past errors">?</span>
+                        </span>
+                        <span class="control-value" id="kiValue">0.0</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="kiSlider"
+                               min="0" max="2" step="0.05" value="0">
+                        <div class="slider-track" id="kiTrack"></div>
+                    </div>
+                    <div class="slider-limits">
+                        <span>0</span>
+                        <span>No Correction</span>
+                        <span>Strong Correction</span>
+                        <span>2</span>
+                    </div>
+                </div>
+
+                <!-- Derivative Gain -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="label-text">
+                            Derivative (Kd)
+                            <span class="tooltip" data-tip="Dampens oscillations by predicting future">?</span>
+                        </span>
+                        <span class="control-value" id="kdValue">0.5</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="kdSlider"
+                               min="0" max="2" step="0.05" value="0.5">
+                        <div class="slider-track" id="kdTrack"></div>
+                    </div>
+                    <div class="slider-limits">
+                        <span>0</span>
+                        <span>No Damping</span>
+                        <span>Heavy Damping</span>
+                        <span>2</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speed & Algorithm Panel -->
+            <div class="panel">
+                <div class="lock-overlay" id="speedLockOverlay">
+                    <div class="lock-message">
+                        <div class="lock-icon">🔒</div>
+                        <div class="lock-text">Parameters Locked by Supervisor</div>
+                    </div>
+                </div>
+
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <span class="panel-icon">🎯</span>
+                        Navigation Control
+                    </h3>
+                    <span class="panel-status synced" id="navStatus">SYNCED</span>
+                </div>
+
+                <!-- Target Speed -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="label-text">
+                            Target Speed
+                            <span class="tooltip" data-tip="Maximum forward velocity (m/s)">?</span>
+                        </span>
+                        <span class="control-value"><span id="speedValue">2.0</span> m/s</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="speedSlider"
+                               min="0.5" max="5" step="0.5" value="2">
+                        <div class="slider-track" id="speedTrack"></div>
+                    </div>
+                    <div class="slider-limits">
+                        <span>0.5</span>
+                        <span>Slow & Safe</span>
+                        <span>Fast & Risky</span>
+                        <span>5.0</span>
+                    </div>
+                </div>
+
+                <!-- Lookahead Distance -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="label-text">
+                            Lookahead Distance
+                            <span class="tooltip" data-tip="How far ahead to look for path following">?</span>
+                        </span>
+                        <span class="control-value"><span id="lookaheadValue">1.0</span> m</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="lookaheadSlider"
+                               min="0.5" max="3" step="0.1" value="1">
+                        <div class="slider-track" id="lookaheadTrack"></div>
+                    </div>
+                    <div class="slider-limits">
+                        <span>0.5</span>
+                        <span>Reactive</span>
+                        <span>Predictive</span>
+                        <span>3.0</span>
+                    </div>
+                </div>
+
+                <!-- Algorithm Selection -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="label-text">
+                            Path Following Algorithm
+                            <span class="tooltip" data-tip="Select navigation strategy">?</span>
+                        </span>
+                    </div>
+                    <div class="algorithm-selector">
+                        <div class="algorithm-option selected" data-algorithm="pure_pursuit">
+                            Pure Pursuit
+                        </div>
+                        <div class="algorithm-option" data-algorithm="stanley">
+                            Stanley
+                        </div>
+                        <div class="algorithm-option" data-algorithm="dwa">
+                            DWA
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Telemetry Panel -->
+        <div class="panel telemetry-panel">
+            <div class="telemetry-header">
+                <div class="telemetry-title">📡 REAL-TIME TELEMETRY</div>
+                <div class="telemetry-status">
+                    <span class="recording-dot"></span>
+                    <span>RECORDING</span>
+                </div>
+            </div>
+            <div class="telemetry-content" id="telemetryContent">
+                <div class="telemetry-line latest">
+                    <span class="telemetry-timestamp">[00:00:00]</span>
+                    System initialized. Waiting for connection...
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="metricSpeed">0.0</div>
+                    <div class="metric-label">Speed (m/s)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="metricError">0.0</div>
+                    <div class="metric-label">Error (m)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="metricLapTime">00:00</div>
+                    <div class="metric-label">Lap Time</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="metricStability">100%</div>
+                    <div class="metric-label">Stability</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-panel">
+            <div class="button-grid">
+                <button class="btn btn-primary" onclick="submitParameters()">
+                    📤 Submit Parameters
+                </button>
+                <button class="btn btn-success" onclick="startRace()">
+                    🏁 Start Race
+                </button>
+                <button class="btn btn-danger" onclick="emergencyStop()">
+                    🛑 Emergency Stop
+                </button>
+                <button class="btn btn-info" onclick="resetParameters()">
+                    🔄 Reset to Defaults
+                </button>
+            </div>
+            <div class="submit-feedback" id="submitFeedback"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <!-- Load Firebase Config -->
+    <script src="../../config/firebase/firebase_config.js"></script>
+
+    <script>
+        // Enhanced Student Interface Controller
+        class StudentController {
+            constructor() {
+                this.studentId = null;
+                this.carNumber = null;
+                this.firebaseManager = null;
+                this.isLocked = false;
+                this.connectionStatus = 'disconnected';
+                this.telemetryLines = [];
+                this.lapStartTime = null;
+                this.selectedAlgorithm = 'pure_pursuit';
+                this.parameters = {
+                    kp: 1.0,
+                    ki: 0.0,
+                    kd: 0.5,
+                    speed: 2.0,
+                    lookahead: 1.0,
+                    algorithm: 'pure_pursuit'
+                };
+                this.modifiedParams = new Set();
+
+                this.initialize();
+            }
+
+            initialize() {
+                // Get student ID and car from URL or generate
+                const urlParams = new URLSearchParams(window.location.search);
+                this.studentId = urlParams.get('id') || this.generateStudentId();
+                this.carNumber = urlParams.get('car') || Math.floor(Math.random() * 5) + 1;
+
+                this.updateStudentInfo();
+                this.setupSliderListeners();
+                this.setupAlgorithmSelector();
+                this.connectToFirebase();
+                this.startTelemetrySimulation();
+            }
+
+            generateStudentId() {
+                return 'STU-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            }
+
+            updateStudentInfo() {
+                const studentNum = this.studentId.slice(-3);
+                document.getElementById('studentAvatar').textContent = `S${studentNum[0]}`;
+                document.getElementById('studentName').textContent = `Student-${studentNum}`;
+                document.getElementById('studentId').textContent = this.studentId;
+                document.getElementById('carNumber').textContent = this.carNumber;
+            }
+
+            setupSliderListeners() {
+                const sliders = [
+                    { id: 'kp', min: 0, max: 5, step: 0.1 },
+                    { id: 'ki', min: 0, max: 2, step: 0.05 },
+                    { id: 'kd', min: 0, max: 2, step: 0.05 },
+                    { id: 'speed', min: 0.5, max: 5, step: 0.5 },
+                    { id: 'lookahead', min: 0.5, max: 3, step: 0.1 }
+                ];
+
+                sliders.forEach(slider => {
+                    const sliderElement = document.getElementById(`${slider.id}Slider`);
+                    const valueElement = document.getElementById(`${slider.id}Value`);
+                    const trackElement = document.getElementById(`${slider.id}Track`);
+
+                    sliderElement.addEventListener('input', (e) => {
+                        const value = parseFloat(e.target.value);
+                        valueElement.textContent = value.toFixed(slider.step < 1 ? 1 : 0);
+
+                        // Update track width
+                        const percentage = ((value - slider.min) / (slider.max - slider.min)) * 100;
+                        trackElement.style.width = `${percentage}%`;
+
+                        // Track parameter change
+                        this.parameters[slider.id] = value;
+                        this.modifiedParams.add(slider.id);
+                        this.updatePanelStatus(slider.id);
+                    });
+
+                    // Initialize track width
+                    const initialValue = parseFloat(sliderElement.value);
+                    const percentage = ((initialValue - slider.min) / (slider.max - slider.min)) * 100;
+                    trackElement.style.width = `${percentage}%`;
+                });
+            }
+
+            setupAlgorithmSelector() {
+                document.querySelectorAll('.algorithm-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        document.querySelectorAll('.algorithm-option').forEach(opt =>
+                            opt.classList.remove('selected'));
+                        e.target.classList.add('selected');
+                        this.selectedAlgorithm = e.target.dataset.algorithm;
+                        this.parameters.algorithm = this.selectedAlgorithm;
+                        this.modifiedParams.add('algorithm');
+                        this.updatePanelStatus('algorithm');
+                    });
+                });
+            }
+
+            updatePanelStatus(param) {
+                const pidParams = ['kp', 'ki', 'kd'];
+                const navParams = ['speed', 'lookahead', 'algorithm'];
+
+                let statusElement;
+                if (pidParams.includes(param)) {
+                    statusElement = document.getElementById('pidStatus');
+                } else if (navParams.includes(param)) {
+                    statusElement = document.getElementById('navStatus');
+                }
+
+                if (statusElement && this.modifiedParams.size > 0) {
+                    statusElement.textContent = 'MODIFIED';
+                    statusElement.classList.remove('synced');
+                    statusElement.classList.add('modified');
+                }
+            }
+
+            async connectToFirebase() {
+                this.updateConnectionStatus('connecting');
+
+                try {
+                    // Initialize Firebase Manager
+                    this.firebaseManager = new FirebaseManager();
+
+                    // Register student
+                    await this.firebaseManager.registerStudent(
+                        this.studentId,
+                        `Student-${this.studentId.slice(-3)}`,
+                        this.carNumber
+                    );
+
+                    // Listen for lock status
+                    this.firebaseManager.onLockStatusChange((isLocked) => {
+                        this.setLockStatus(isLocked);
+                    });
+
+                    // Listen for race status
+                    this.firebaseManager.onRaceStatusChange((status) => {
+                        this.handleRaceStatusChange(status);
+                    });
+
+                    this.updateConnectionStatus('connected');
+                    this.addTelemetryLine('Connected to Firebase successfully');
+
+                } catch (error) {
+                    console.error('Firebase connection error:', error);
+                    this.updateConnectionStatus('disconnected');
+                    this.addTelemetryLine('Connection failed: ' + error.message, 'error');
+                }
+            }
+
+            updateConnectionStatus(status) {
+                this.connectionStatus = status;
+                const bar = document.getElementById('connectionBar');
+                const indicator = document.getElementById('connectionIndicator');
+                const text = document.getElementById('connectionText');
+
+                // Remove all status classes
+                ['connected', 'connecting', 'disconnected'].forEach(cls => {
+                    bar.classList.remove(cls);
+                    indicator.classList.remove(cls);
+                    text.classList.remove(cls);
+                });
+
+                // Add current status
+                bar.classList.add(status);
+                indicator.classList.add(status);
+                text.classList.add(status);
+
+                // Update text
+                const statusTexts = {
+                    connected: 'Connected',
+                    connecting: 'Connecting...',
+                    disconnected: 'Disconnected'
+                };
+                text.textContent = statusTexts[status];
+            }
+
+            setLockStatus(isLocked) {
+                this.isLocked = isLocked;
+                const overlays = ['pidLockOverlay', 'speedLockOverlay'];
+                overlays.forEach(id => {
+                    const overlay = document.getElementById(id);
+                    if (isLocked) {
+                        overlay.classList.add('active');
+                    } else {
+                        overlay.classList.remove('active');
+                    }
+                });
+
+                // Disable/enable sliders
+                document.querySelectorAll('.slider').forEach(slider => {
+                    slider.disabled = isLocked;
+                });
+
+                document.querySelectorAll('.algorithm-option').forEach(option => {
+                    option.style.pointerEvents = isLocked ? 'none' : 'auto';
+                    option.style.opacity = isLocked ? '0.5' : '1';
+                });
+
+                if (isLocked) {
+                    this.addTelemetryLine('⚠️ Parameters locked by supervisor', 'warning');
+                } else {
+                    this.addTelemetryLine('✅ Parameters unlocked', 'success');
+                }
+            }
+
+            handleRaceStatusChange(status) {
+                if (status === 'running' && !this.lapStartTime) {
+                    this.lapStartTime = Date.now();
+                    this.addTelemetryLine('🏁 Race started!', 'success');
+                } else if (status === 'stopped') {
+                    this.lapStartTime = null;
+                    this.addTelemetryLine('🛑 Race stopped', 'warning');
+                }
+            }
+
+            addTelemetryLine(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                const line = document.createElement('div');
+                line.className = 'telemetry-line';
+                if (this.telemetryLines.length === 0) {
+                    line.classList.add('latest');
+                }
+
+                line.innerHTML = `<span class="telemetry-timestamp">[${timestamp}]</span> ${message}`;
+
+                const container = document.getElementById('telemetryContent');
+
+                // Remove 'latest' class from previous lines
+                container.querySelectorAll('.telemetry-line').forEach(l =>
+                    l.classList.remove('latest'));
+
+                container.insertBefore(line, container.firstChild);
+                this.telemetryLines.unshift(line);
+
+                // Keep only last 50 lines
+                if (this.telemetryLines.length > 50) {
+                    const removed = this.telemetryLines.pop();
+                    removed.remove();
+                }
+            }
+
+            startTelemetrySimulation() {
+                setInterval(() => {
+                    if (this.connectionStatus === 'connected') {
+                        // Update metrics
+                        const speed = (Math.random() * 3 + 1).toFixed(1);
+                        const error = (Math.random() * 0.5).toFixed(2);
+                        const stability = Math.floor(Math.random() * 20 + 80);
+
+                        document.getElementById('metricSpeed').textContent = speed;
+                        document.getElementById('metricError').textContent = error;
+                        document.getElementById('metricStability').textContent = stability + '%';
+
+                        // Update lap time
+                        if (this.lapStartTime) {
+                            const elapsed = Math.floor((Date.now() - this.lapStartTime) / 1000);
+                            const minutes = Math.floor(elapsed / 60);
+                            const seconds = elapsed % 60;
+                            document.getElementById('metricLapTime').textContent =
+                                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        }
+
+                        // Occasionally add telemetry line
+                        if (Math.random() < 0.1) {
+                            const messages = [
+                                `Speed: ${speed} m/s, Error: ${error} m`,
+                                `PID output: ${(Math.random() * 2 - 1).toFixed(3)}`,
+                                `Stability: ${stability}%`,
+                                `Checkpoint passed`,
+                                `Path recalculated`
+                            ];
+                            this.addTelemetryLine(messages[Math.floor(Math.random() * messages.length)]);
+                        }
+                    }
+                }, 1000);
+            }
+
+            async submitParameters() {
+                if (this.isLocked) {
+                    this.showFeedback('Parameters are locked!', 'error');
+                    return;
+                }
+
+                try {
+                    await this.firebaseManager.updateStudentParameters(
+                        this.studentId,
+                        this.parameters
+                    );
+
+                    this.modifiedParams.clear();
+                    document.getElementById('pidStatus').textContent = 'SYNCED';
+                    document.getElementById('pidStatus').classList.remove('modified');
+                    document.getElementById('pidStatus').classList.add('synced');
+                    document.getElementById('navStatus').textContent = 'SYNCED';
+                    document.getElementById('navStatus').classList.remove('modified');
+                    document.getElementById('navStatus').classList.add('synced');
+
+                    this.showFeedback('✅ Parameters submitted successfully!', 'success');
+                    this.addTelemetryLine('Parameters synchronized with supervisor', 'success');
+                } catch (error) {
+                    this.showFeedback('❌ Submit failed: ' + error.message, 'error');
+                }
+            }
+
+            showFeedback(message, type) {
+                const feedback = document.getElementById('submitFeedback');
+                feedback.textContent = message;
+                feedback.className = `submit-feedback ${type}`;
+                feedback.style.display = 'block';
+
+                setTimeout(() => {
+                    feedback.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Global functions for buttons
+        function submitParameters() {
+            window.controller.submitParameters();
+        }
+
+        function startRace() {
+            window.controller.firebaseManager?.setRaceStatus('running');
+            window.controller.addTelemetryLine('🏁 Race start requested', 'success');
+        }
+
+        function emergencyStop() {
+            window.controller.firebaseManager?.setRaceStatus('stopped');
+            window.controller.addTelemetryLine('🛑 Emergency stop activated', 'error');
+        }
+
+        function resetParameters() {
+            // Reset all sliders to defaults
+            document.getElementById('kpSlider').value = 1.0;
+            document.getElementById('kiSlider').value = 0.0;
+            document.getElementById('kdSlider').value = 0.5;
+            document.getElementById('speedSlider').value = 2.0;
+            document.getElementById('lookaheadSlider').value = 1.0;
+
+            // Trigger input events to update display
+            ['kp', 'ki', 'kd', 'speed', 'lookahead'].forEach(id => {
+                const slider = document.getElementById(`${id}Slider`);
+                slider.dispatchEvent(new Event('input'));
+            });
+
+            window.controller.addTelemetryLine('🔄 Parameters reset to defaults', 'info');
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            window.controller = new StudentController();
+        });
+    </script>
+</body>
+</html>

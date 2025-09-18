@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Controller Interface - Racing Training</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .student-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .student-name {
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .car-assignment {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-dot.connected {
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .control-panels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel-title {
+            font-size: 1.3em;
+            color: #5a67d8;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .control-value {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.2em;
+            font-weight: 700;
+        }
+
+        .slider-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 10px;
+            background: #e2e8f0;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .slider-track {
+            position: absolute;
+            height: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            pointer-events: none;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ff4444);
+            color: white;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .telemetry-display {
+            background: #1a202c;
+            color: #00ff88;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            height: 150px;
+            overflow-y: auto;
+        }
+
+        .telemetry-line {
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .telemetry-line:first-child {
+            opacity: 1;
+            color: #00ff88;
+        }
+
+        .visualization-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .car-visual {
+            width: 60px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 5px;
+            position: absolute;
+            transition: all 0.3s ease;
+        }
+
+        .track-outline {
+            width: 80%;
+            height: 80%;
+            border: 3px dashed #e2e8f0;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .locked-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4444;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .locked-indicator.active {
+            display: block;
+            background: #00ff88;
+        }
+
+        .submit-status {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid #00ff88;
+            color: #00b368;
+            display: none;
+        }
+
+        .submit-status.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="student-info">
+                <div>
+                    <div class="student-name">Student: <span id="studentName">Not Connected</span></div>
+                    <div class="connection-status">
+                        <div class="status-dot" id="connectionStatus"></div>
+                        <span id="connectionText">Disconnected</span>
+                    </div>
+                </div>
+                <div class="car-assignment">
+                    Car #<span id="carNumber">?</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panels -->
+        <div class="control-panels">
+            <!-- PID Controller Panel -->
+            <div class="panel">
+                <h2 class="panel-title">🎮 PID Controller</h2>
+                
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Proportional (Kp)</span>
+                        <span class="control-value" id="kpValue">1.0</span>
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-track" id="kpTrack"></div>
+                        <input type="range" class="slider" id="kpSlider" min="0" max="5" step="0.1" value="1.0">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Integral (Ki)</span>
+                        <span class="control-value" id="kiValue">0.0</span>
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-track" id="kiTrack"></div>
+                        <input type="range" class="slider" id="kiSlider" min="0" max="2" step="0.01" value="0.0">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Derivative (Kd)</span>
+                        <span class="control-value" id="kdValue">0.0</span>
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-track" id="kdTrack"></div>
+                        <input type="range" class="slider" id="kdSlider" min="0" max="2" step="0.01" value="0.0">
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="submitPIDValues()">Submit Values</button>
+                    <button class="btn btn-secondary" onclick="resetPIDValues()">Reset</button>
+                </div>
+            </div>
+
+            <!-- Speed & Path Settings -->
+            <div class="panel">
+                <h2 class="panel-title">🏁 Speed & Path Settings</h2>
+                
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Max Speed (m/s)</span>
+                        <span class="control-value" id="speedValue">2.0</span>
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-track" id="speedTrack"></div>
+                        <input type="range" class="slider" id="speedSlider" min="0.5" max="5" step="0.1" value="2.0">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Lookahead Distance (m)</span>
+                        <span class="control-value" id="lookaheadValue">1.5</span>
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-track" id="lookaheadTrack"></div>
+                        <input type="range" class="slider" id="lookaheadSlider" min="0.5" max="3" step="0.1" value="1.5">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Path Algorithm</span>
+                    </div>
+                    <select class="input-field" id="pathAlgorithm">
+                        <option value="pure_pursuit">Pure Pursuit</option>
+                        <option value="stanley">Stanley Controller</option>
+                        <option value="mpc">Model Predictive Control</option>
+                    </select>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="submitPathSettings()">Apply Settings</button>
+                    <button class="btn btn-danger" onclick="emergencyStop()">Emergency Stop</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Section -->
+        <div class="panel">
+            <h2 class="panel-title">📊 Live Telemetry & Visualization</h2>
+            <div class="locked-indicator" id="lockedIndicator">Parameters Locked</div>
+            
+            <div class="visualization-container">
+                <div class="track-outline"></div>
+                <div class="car-visual" id="carVisual"></div>
+            </div>
+
+            <div class="telemetry-display" id="telemetryDisplay">
+                <div class="telemetry-line">Waiting for telemetry data...</div>
+            </div>
+        </div>
+
+        <!-- Submit Status -->
+        <div class="submit-status" id="submitStatus">
+            ✅ Parameters successfully submitted and locked by instructor!
+        </div>
+    </div>
+
+    <!-- Firebase Config (to be replaced with actual config) -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    
+    <script>
+        // Student Interface Logic
+        let studentId = null;
+        let carNumber = null;
+        let isLocked = false;
+        let telemetryInterval = null;
+
+        // Initialize student session
+        function initializeStudent() {
+            // Generate unique student ID or get from URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            studentId = urlParams.get('id') || generateStudentId();
+            carNumber = urlParams.get('car') || Math.floor(Math.random() * 5) + 1;
+            
+            document.getElementById('studentName').textContent = `Student-${studentId}`;
+            document.getElementById('carNumber').textContent = carNumber;
+            
+            // Connect to Firebase (mock for now)
+            connectToFirebase();
+            
+            // Start telemetry simulation
+            startTelemetrySimulation();
+        }
+
+        function generateStudentId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function connectToFirebase() {
+            // Mock connection
+            setTimeout(() => {
+                document.getElementById('connectionStatus').classList.add('connected');
+                document.getElementById('connectionText').textContent = 'Connected';
+            }, 1000);
+        }
+
+        // Slider updates
+        document.querySelectorAll('.slider').forEach(slider => {
+            slider.addEventListener('input', function() {
+                const valueId = this.id.replace('Slider', 'Value');
+                const trackId = this.id.replace('Slider', 'Track');
+                const value = this.value;
+                const min = this.min;
+                const max = this.max;
+                const percentage = ((value - min) / (max - min)) * 100;
+                
+                document.getElementById(valueId).textContent = value;
+                document.getElementById(trackId).style.width = percentage + '%';
+                
+                // Update car visualization for demo
+                if (this.id === 'speedSlider') {
+                    updateCarSpeed(value);
+                }
+            });
+            
+            // Initialize track width
+            slider.dispatchEvent(new Event('input'));
+        });
+
+        function submitPIDValues() {
+            if (isLocked) {
+                alert('Parameters are locked by the instructor!');
+                return;
+            }
+            
+            const pidValues = {
+                kp: document.getElementById('kpSlider').value,
+                ki: document.getElementById('kiSlider').value,
+                kd: document.getElementById('kdSlider').value,
+                timestamp: new Date().toISOString(),
+                studentId: studentId,
+                carNumber: carNumber
+            };
+            
+            // Send to Firebase
+            console.log('Submitting PID values:', pidValues);
+            
+            // Show confirmation
+            showSubmitStatus();
+        }
+
+        function submitPathSettings() {
+            if (isLocked) {
+                alert('Parameters are locked by the instructor!');
+                return;
+            }
+            
+            const pathSettings = {
+                maxSpeed: document.getElementById('speedSlider').value,
+                lookahead: document.getElementById('lookaheadSlider').value,
+                algorithm: document.getElementById('pathAlgorithm').value,
+                timestamp: new Date().toISOString(),
+                studentId: studentId,
+                carNumber: carNumber
+            };
+            
+            console.log('Submitting path settings:', pathSettings);
+            showSubmitStatus();
+        }
+
+        function resetPIDValues() {
+            if (isLocked) {
+                alert('Parameters are locked by the instructor!');
+                return;
+            }
+            
+            document.getElementById('kpSlider').value = 1.0;
+            document.getElementById('kiSlider').value = 0.0;
+            document.getElementById('kdSlider').value = 0.0;
+            
+            // Trigger input events to update displays
+            document.querySelectorAll('#kpSlider, #kiSlider, #kdSlider').forEach(slider => {
+                slider.dispatchEvent(new Event('input'));
+            });
+        }
+
+        function emergencyStop() {
+            const stopCommand = {
+                command: 'EMERGENCY_STOP',
+                studentId: studentId,
+                carNumber: carNumber,
+                timestamp: new Date().toISOString()
+            };
+            
+            console.log('Emergency stop triggered:', stopCommand);
+            alert('Emergency stop command sent!');
+        }
+
+        function showSubmitStatus() {
+            const status = document.getElementById('submitStatus');
+            status.classList.add('show');
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 3000);
+        }
+
+        function lockParameters(locked) {
+            isLocked = locked;
+            document.getElementById('lockedIndicator').classList.toggle('active', locked);
+            
+            // Disable/enable all controls
+            document.querySelectorAll('.slider, .input-field, .btn-primary, .btn-secondary').forEach(element => {
+                element.disabled = locked;
+            });
+        }
+
+        function startTelemetrySimulation() {
+            telemetryInterval = setInterval(() => {
+                const telemetry = generateMockTelemetry();
+                updateTelemetryDisplay(telemetry);
+                updateCarVisualization(telemetry);
+            }, 100);
+        }
+
+        function generateMockTelemetry() {
+            return {
+                speed: (Math.random() * 3 + 1).toFixed(2),
+                position: {
+                    x: Math.sin(Date.now() / 1000) * 150,
+                    y: Math.cos(Date.now() / 1000) * 150
+                },
+                error: (Math.random() * 0.5 - 0.25).toFixed(3),
+                heading: (Date.now() / 100) % 360,
+                lapTime: ((Date.now() / 1000) % 60).toFixed(1)
+            };
+        }
+
+        function updateTelemetryDisplay(telemetry) {
+            const display = document.getElementById('telemetryDisplay');
+            const newLine = document.createElement('div');
+            newLine.className = 'telemetry-line';
+            newLine.textContent = `[${new Date().toLocaleTimeString()}] Speed: ${telemetry.speed}m/s | Error: ${telemetry.error}m | Lap: ${telemetry.lapTime}s`;
+            
+            display.insertBefore(newLine, display.firstChild);
+            
+            // Keep only last 10 lines
+            while (display.children.length > 10) {
+                display.removeChild(display.lastChild);
+            }
+        }
+
+        function updateCarVisualization(telemetry) {
+            const car = document.getElementById('carVisual');
+            car.style.left = `calc(50% + ${telemetry.position.x}px)`;
+            car.style.top = `calc(50% + ${telemetry.position.y}px)`;
+            car.style.transform = `translate(-50%, -50%) rotate(${telemetry.heading}deg)`;
+        }
+
+        function updateCarSpeed(speed) {
+            // Update animation speed based on speed value
+            const car = document.getElementById('carVisual');
+            car.style.transition = `all ${0.5 / speed}s ease`;
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initializeStudent);
+        
+        // Listen for lock commands from supervisor (mock)
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'LOCK_PARAMETERS') {
+                lockParameters(event.data.locked);
+            }
+        });
+    </script>
+</body>
+</html>

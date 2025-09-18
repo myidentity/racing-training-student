@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Racing Training - Student Portal</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #00ff88, #00bbff);
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .racing-icon {
+            font-size: 4em;
+            margin: 20px 0;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .btn-primary {
+            display: inline-block;
+            padding: 20px 40px;
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 187, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 187, 255, 0.4);
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 30px;
+            border: 2px solid #ddd;
+        }
+
+        .info-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .info-list {
+            text-align: left;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .info-list li {
+            margin: 8px 0;
+            list-style: none;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .info-list li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .limited-spots {
+            background: linear-gradient(135deg, #ff6b6b, #ff4444);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            margin-top: 20px;
+            font-size: 0.9em;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="racing-icon">🏎️</div>
+        <h1>Racing Training</h1>
+        <p class="subtitle">Interactive Autonomous Racing Control</p>
+
+        <a href="student/interfaces/racing_controller.html" class="btn-primary">
+            Join Racing Session
+        </a>
+
+        <div class="info-box">
+            <div class="info-title">📋 How It Works:</div>
+            <ul class="info-list">
+                <li>Register with your name and country</li>
+                <li>Wait for instructor approval</li>
+                <li>Get assigned to an available car</li>
+                <li>Tune your racing parameters</li>
+                <li>Compete with other students</li>
+            </ul>
+        </div>
+
+        <div class="limited-spots">
+            ⚠️ Limited to 5 active racers at a time
+        </div>
+    </div>
+</body>
+</html>
