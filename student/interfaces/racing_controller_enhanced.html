@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Racing Controller - Interactive Training System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Apple-inspired color palette */
+            --bg-gradient: linear-gradient(135deg, #5C7CFA 0%, #C778DD 50%, #F8B500 100%);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.25);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255, 255, 255, 0.9);
+            --text-tertiary: rgba(255, 255, 255, 0.75);
+            --success-color: #34D399;
+            --warning-color: #FBBF24;
+            --danger-color: #F87171;
+            --info-color: #60A5FA;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background orbs */
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.5;
+            animation: float 20s infinite;
+        }
+
+        body::before {
+            width: 600px;
+            height: 600px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            top: -200px;
+            right: -200px;
+        }
+
+        body::after {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            bottom: -200px;
+            left: -200px;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+
+        /* Control Panel (Active State) */
+        .control-panel {
+            display: block;
+            padding: 20px;
+        }
+
+        .control-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .parameter-controls {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .parameter-controls h2 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            font-weight: 700;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            letter-spacing: -0.5px;
+        }
+
+        /* Help Icon Styles */
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .help-icon:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+        }
+
+        /* Tooltip Styles */
+        .tooltip {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 40, 0.95);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            white-space: nowrap;
+            font-size: 13px;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            max-width: 300px;
+            white-space: normal;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .help-icon:hover .tooltip {
+            opacity: 1;
+        }
+
+        /* Expandable Education Panel */
+        .education-panel {
+            margin-top: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .education-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .education-toggle:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .education-toggle-text {
+            display: flex;
+            align-items: center;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .education-toggle-icon {
+            margin-right: 8px;
+        }
+
+        .education-arrow {
+            transition: transform 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        .education-panel.expanded .education-arrow {
+            transform: rotate(180deg);
+        }
+
+        .education-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .education-panel.expanded .education-content {
+            max-height: 800px;
+        }
+
+        .education-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .education-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .education-tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .education-tab.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.15);
+            border-bottom: 2px solid var(--success-color);
+        }
+
+        .education-tab-content {
+            padding: 20px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .education-tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .education-level {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .education-level h4 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+        }
+
+        .education-level ul {
+            list-style: none;
+            margin-left: 20px;
+        }
+
+        .education-level li {
+            margin: 8px 0;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .education-level li:before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+        }
+
+        .education-level strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .education-level code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: var(--info-color);
+        }
+
+        /* Slider Styles */
+        .slider-group {
+            margin-bottom: 35px;
+            position: relative;
+            padding: 8px 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .slider-name-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        .slider-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.1em;
+            letter-spacing: -0.3px;
+        }
+
+        .slider-value {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--text-primary);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            min-width: 60px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(255, 255, 255, 0.1);
+        }
+
+        .slider {
+            width: 100%;
+            height: 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            outline: none;
+            -webkit-appearance: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+
+        .slider:hover {
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 0 0 rgba(255, 255, 255, 0.4);
+            transition: all 0.2s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .slider::-webkit-slider-thumb:hover,
+        .slider::-webkit-slider-thumb:active {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.15);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3), 0 0 0 10px rgba(255, 255, 255, 0.15);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        /* Parameter Section Styles */
+        .param-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .param-section h4 {
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        /* Submit Button */
+        .submit-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #submitButton {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            color: #1a202c;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #submitButton:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        #submitButton:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <!-- Control Panel (Active Racing) -->
+    <div class="control-panel" id="controlPanel">
+        <div class="control-container">
+            <div class="parameter-controls">
+                <h2>🎮 Racing Parameters - Educational Mode</h2>
+
+                <!-- Pure Pursuit Parameters Section -->
+                <div class="param-section">
+                    <h4>🎯 Pure Pursuit Parameters</h4>
+
+                    <!-- Lookahead Distance -->
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <div class="slider-name-wrapper">
+                                <span class="slider-name">Lookahead Distance (m)</span>
+                                <span class="help-icon">?
+                                    <div class="tooltip">How far ahead the car "looks" on the racing line. Like looking ahead while riding a bicycle - look too close and you wobble, look too far and you miss the turn.</div>
+                                </span>
+                            </div>
+                            <span class="slider-value" id="lookaheadValue">2.0</span>
+                        </div>
+                        <input type="range" class="slider" id="lookaheadSlider" min="0.3" max="15.0" step="0.1" value="2.0">
+
+                        <!-- Educational Panel -->
+                        <div class="education-panel" id="lookaheadEducation">
+                            <div class="education-toggle" onclick="toggleEducation('lookaheadEducation')">
+                                <span class="education-toggle-text">
+                                    <span class="education-toggle-icon">📚</span>
+                                    Learn More About Lookahead Distance
+                                </span>
+                                <span class="education-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchTab('lookahead', 'beginner')">📚 Beginner</div>
+                                    <div class="education-tab" onclick="switchTab('lookahead', 'intermediate')">🔬 Intermediate</div>
+                                    <div class="education-tab" onclick="switchTab('lookahead', 'advanced')">🎓 Advanced</div>
+                                </div>
+                                <div class="education-tab-content active" id="lookahead-beginner">
+                                    <div class="education-level">
+                                        <h4>📚 Beginner Understanding</h4>
+                                        <ul>
+                                            <li><strong>What:</strong> How far ahead the car "looks" on the racing line</li>
+                                            <li><strong>Analogy:</strong> Like looking ahead while riding a bicycle - look too close and you wobble, look too far and you miss the turn</li>
+                                            <li><strong>Effect:</strong> Higher = Smoother but less responsive | Lower = Tighter turns but wobblier</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="lookahead-intermediate">
+                                    <div class="education-level">
+                                        <h4>🔬 Intermediate Technical Details</h4>
+                                        <ul>
+                                            <li><strong>Technical:</strong> The distance to the target point on the path that the car steers toward</li>
+                                            <li><strong>Formula:</strong> <code>steering_angle = atan(2 * L * sin(α) / ld)</code></li>
+                                            <li>where L = wheelbase, α = angle to target, ld = lookahead distance</li>
+                                            <li><strong>Trade-offs:</strong></li>
+                                            <li style="margin-left: 20px;">Too high (>5m): Car cuts corners, misses apex</li>
+                                            <li style="margin-left: 20px;">Too low (<1m): Car oscillates, unstable steering</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="lookahead-advanced">
+                                    <div class="education-level">
+                                        <h4>🎓 Advanced Theory</h4>
+                                        <ul>
+                                            <li><strong>Theory:</strong> Pure Pursuit is a geometric path tracking algorithm from robotics</li>
+                                            <li><strong>Stability:</strong> Lookahead acts as a low-pass filter on path curvature</li>
+                                            <li><strong>Research:</strong> Originally from "Implementation of the Pure Pursuit Path Tracking Algorithm" (R. Craig Coulter, 1992)</li>
+                                            <li><strong>Pro tip:</strong> Use <code>ld = k * v</code> (velocity-dependent lookahead) for adaptive performance</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lookahead Gain -->
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <div class="slider-name-wrapper">
+                                <span class="slider-name">Lookahead Gain</span>
+                                <span class="help-icon">?
+                                    <div class="tooltip">Multiplier that adjusts how lookahead changes with speed. Like adjusting your viewing distance based on highway vs. parking lot.</div>
+                                </span>
+                            </div>
+                            <span class="slider-value" id="lookaheadGainValue">1.0</span>
+                        </div>
+                        <input type="range" class="slider" id="lookaheadGainSlider" min="0.2" max="10.0" step="0.1" value="1.0">
+
+                        <!-- Educational Panel -->
+                        <div class="education-panel" id="lookaheadGainEducation">
+                            <div class="education-toggle" onclick="toggleEducation('lookaheadGainEducation')">
+                                <span class="education-toggle-text">
+                                    <span class="education-toggle-icon">📚</span>
+                                    Learn More About Lookahead Gain
+                                </span>
+                                <span class="education-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchTab('lookaheadGain', 'beginner')">📚 Beginner</div>
+                                    <div class="education-tab" onclick="switchTab('lookaheadGain', 'intermediate')">🔬 Intermediate</div>
+                                    <div class="education-tab" onclick="switchTab('lookaheadGain', 'advanced')">🎓 Advanced</div>
+                                </div>
+                                <div class="education-tab-content active" id="lookaheadGain-beginner">
+                                    <div class="education-level">
+                                        <h4>📚 Beginner Understanding</h4>
+                                        <ul>
+                                            <li><strong>What:</strong> Multiplier that adjusts how lookahead changes with speed</li>
+                                            <li><strong>Analogy:</strong> Like adjusting your viewing distance based on highway vs. parking lot</li>
+                                            <li><strong>Effect:</strong> Controls how much lookahead increases when going faster</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="lookaheadGain-intermediate">
+                                    <div class="education-level">
+                                        <h4>🔬 Intermediate Technical Details</h4>
+                                        <ul>
+                                            <li><strong>Technical:</strong> Coefficient 'k' in the equation: <code>lookahead = k * velocity + min_lookahead</code></li>
+                                            <li><strong>Purpose:</strong> Maintains stable tracking at varying speeds</li>
+                                            <li><strong>Typical values:</strong> 0.5-2.0 (1.0 = linear relationship)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="lookaheadGain-advanced">
+                                    <div class="education-level">
+                                        <h4>🎓 Advanced Theory</h4>
+                                        <ul>
+                                            <li><strong>Dynamics:</strong> Prevents oscillation at high speeds while maintaining responsiveness</li>
+                                            <li><strong>Tuning:</strong> Start at 1.0, increase if unstable at high speed, decrease if cutting corners</li>
+                                            <li><strong>Research:</strong> Adaptive lookahead improves performance by 40% (Stanford Racing Team)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Min Lookahead -->
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <div class="slider-name-wrapper">
+                                <span class="slider-name">Min Lookahead (m)</span>
+                                <span class="help-icon">?
+                                    <div class="tooltip">Minimum distance the car will look ahead, even at very low speeds. Prevents the car from looking too close and wobbling.</div>
+                                </span>
+                            </div>
+                            <span class="slider-value" id="minLookaheadValue">2.0</span>
+                        </div>
+                        <input type="range" class="slider" id="minLookaheadSlider" min="0.2" max="10.0" step="0.1" value="2.0">
+
+                        <!-- Educational Panel -->
+                        <div class="education-panel" id="minMaxLookaheadEducation">
+                            <div class="education-toggle" onclick="toggleEducation('minMaxLookaheadEducation')">
+                                <span class="education-toggle-text">
+                                    <span class="education-toggle-icon">📚</span>
+                                    Learn More About Min/Max Lookahead
+                                </span>
+                                <span class="education-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchTab('minMaxLookahead', 'beginner')">📚 Beginner</div>
+                                    <div class="education-tab" onclick="switchTab('minMaxLookahead', 'intermediate')">🔬 Intermediate</div>
+                                    <div class="education-tab" onclick="switchTab('minMaxLookahead', 'advanced')">🎓 Advanced</div>
+                                </div>
+                                <div class="education-tab-content active" id="minMaxLookahead-beginner">
+                                    <div class="education-level">
+                                        <h4>📚 Beginner Understanding</h4>
+                                        <ul>
+                                            <li><strong>What:</strong> Safety limits for how close/far the car can look</li>
+                                            <li><strong>Analogy:</strong> Like having minimum following distance in traffic</li>
+                                            <li><strong>Min:</strong> Prevents looking too close (causing wobble)</li>
+                                            <li><strong>Max:</strong> Prevents looking too far (missing turns)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="minMaxLookahead-intermediate">
+                                    <div class="education-level">
+                                        <h4>🔬 Intermediate Technical Details</h4>
+                                        <ul>
+                                            <li><strong>Min Lookahead:</strong> Prevents ld < vehicle_length (typically 1.5-2x wheelbase)</li>
+                                            <li><strong>Max Lookahead:</strong> Caps ld to prevent corner cutting (typically track_width * 2)</li>
+                                            <li><strong>Clamping:</strong> <code>actual_ld = clamp(k*v + base, min_ld, max_ld)</code></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="minMaxLookahead-advanced">
+                                    <div class="education-level">
+                                        <h4>🎓 Advanced Theory</h4>
+                                        <ul>
+                                            <li><strong>Stability region:</strong> Min ensures controller poles stay in left half-plane</li>
+                                            <li><strong>Track dependency:</strong> Max should be < smallest_turn_radius / 2</li>
+                                            <li><strong>Dynamic adjustment:</strong> Can vary based on track section (straight vs. corner)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Max Lookahead -->
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <div class="slider-name-wrapper">
+                                <span class="slider-name">Max Lookahead (m)</span>
+                                <span class="help-icon">?
+                                    <div class="tooltip">Maximum distance the car will look ahead, even at high speeds. Prevents the car from looking too far and cutting corners.</div>
+                                </span>
+                            </div>
+                            <span class="slider-value" id="maxLookaheadValue">3.3</span>
+                        </div>
+                        <input type="range" class="slider" id="maxLookaheadSlider" min="0.4" max="20.0" step="0.1" value="3.3">
+                    </div>
+
+                    <!-- Waypoint Tolerance -->
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <div class="slider-name-wrapper">
+                                <span class="slider-name">Waypoint Tolerance (m)</span>
+                                <span class="help-icon">?
+                                    <div class="tooltip">How close the car needs to get to a waypoint to consider it "reached". Larger = Smoother path but less precise.</div>
+                                </span>
+                            </div>
+                            <span class="slider-value" id="waypointToleranceValue">2.5</span>
+                        </div>
+                        <input type="range" class="slider" id="waypointToleranceSlider" min="0.5" max="25.0" step="0.5" value="2.5">
+
+                        <!-- Educational Panel -->
+                        <div class="education-panel" id="waypointToleranceEducation">
+                            <div class="education-toggle" onclick="toggleEducation('waypointToleranceEducation')">
+                                <span class="education-toggle-text">
+                                    <span class="education-toggle-icon">📚</span>
+                                    Learn More About Waypoint Tolerance
+                                </span>
+                                <span class="education-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchTab('waypointTolerance', 'beginner')">📚 Beginner</div>
+                                    <div class="education-tab" onclick="switchTab('waypointTolerance', 'intermediate')">🔬 Intermediate</div>
+                                    <div class="education-tab" onclick="switchTab('waypointTolerance', 'advanced')">🎓 Advanced</div>
+                                </div>
+                                <div class="education-tab-content active" id="waypointTolerance-beginner">
+                                    <div class="education-level">
+                                        <h4>📚 Beginner Understanding</h4>
+                                        <ul>
+                                            <li><strong>What:</strong> How close the car needs to get to a waypoint to consider it "reached"</li>
+                                            <li><strong>Analogy:</strong> Like the size of a checkpoint in a video game race</li>
+                                            <li><strong>Effect:</strong> Larger = Smoother path but less precise | Smaller = More precise but may get stuck</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="waypointTolerance-intermediate">
+                                    <div class="education-level">
+                                        <h4>🔬 Intermediate Technical Details</h4>
+                                        <ul>
+                                            <li><strong>Technical:</strong> Radius around waypoint for acceptance criteria</li>
+                                            <li><strong>Impact:</strong> Affects path smoothness and computation frequency</li>
+                                            <li><strong>Typical:</strong> 0.5-3.0m depending on vehicle size and track scale</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="waypointTolerance-advanced">
+                                    <div class="education-level">
+                                        <h4>🎓 Advanced Theory</h4>
+                                        <ul>
+                                            <li><strong>Computational efficiency:</strong> Larger tolerance = fewer waypoint updates = less CPU</li>
+                                            <li><strong>Path fidelity:</strong> Must balance with track width (tolerance < track_width/4)</li>
+                                            <li><strong>Cornering:</strong> Reduce in corners, increase on straights for optimal performance</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Speed Parameters -->
+                <div class="param-section">
+                    <h4>🏁 Speed Control</h4>
+
+                    <!-- Target Speed -->
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <div class="slider-name-wrapper">
+                                <span class="slider-name">Target Speed (m/s)</span>
+                                <span class="help-icon">?
+                                    <div class="tooltip">The speed your car tries to maintain. Like cruise control in a real car. Start with 1.0 m/s and gradually increase.</div>
+                                </span>
+                            </div>
+                            <span class="slider-value" id="targetSpeedValue">1.0</span>
+                        </div>
+                        <input type="range" class="slider" id="targetSpeedSlider" min="0.1" max="5.0" step="0.1" value="1.0">
+
+                        <!-- Educational Panel -->
+                        <div class="education-panel" id="targetSpeedEducation">
+                            <div class="education-toggle" onclick="toggleEducation('targetSpeedEducation')">
+                                <span class="education-toggle-text">
+                                    <span class="education-toggle-icon">📚</span>
+                                    Learn More About Target Speed
+                                </span>
+                                <span class="education-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchTab('targetSpeed', 'beginner')">📚 Beginner</div>
+                                    <div class="education-tab" onclick="switchTab('targetSpeed', 'intermediate')">🔬 Intermediate</div>
+                                    <div class="education-tab" onclick="switchTab('targetSpeed', 'advanced')">🎓 Advanced</div>
+                                </div>
+                                <div class="education-tab-content active" id="targetSpeed-beginner">
+                                    <div class="education-level">
+                                        <h4>📚 Beginner Understanding</h4>
+                                        <ul>
+                                            <li><strong>What:</strong> The speed your car tries to maintain</li>
+                                            <li><strong>Analogy:</strong> Like cruise control in a real car</li>
+                                            <li><strong>Effect:</strong> Your main "gas pedal" setting</li>
+                                            <li><strong>Start with:</strong> 1.0 m/s and gradually increase</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="targetSpeed-intermediate">
+                                    <div class="education-level">
+                                        <h4>🔬 Intermediate Technical Details</h4>
+                                        <ul>
+                                            <li><strong>Technical:</strong> Reference velocity for the speed controller</li>
+                                            <li><strong>Safety:</strong> Should be 70-80% of maximum stable speed</li>
+                                            <li><strong>Track sections:</strong> Ideally varies by section (straights vs. corners)</li>
+                                            <li><strong>Energy:</strong> Higher speed = higher power consumption</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="targetSpeed-advanced">
+                                    <div class="education-level">
+                                        <h4>🎓 Advanced Theory</h4>
+                                        <ul>
+                                            <li><strong>Control theory:</strong> Acts as setpoint (r) in PID control loop</li>
+                                            <li><strong>Limit calculation:</strong> <code>v_max = sqrt(μ * g * R)</code> for corner radius R</li>
+                                            <li><strong>Optimal:</strong> Use speed profiling based on track curvature</li>
+                                            <li><strong>Racing line:</strong> Inner loop (steering) must be tuned before increasing speed</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Min Speed -->
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <div class="slider-name-wrapper">
+                                <span class="slider-name">Min Speed (m/s)</span>
+                                <span class="help-icon">?
+                                    <div class="tooltip">Slowest the car will go, even in tight corners. Prevents stopping/stalling in difficult sections.</div>
+                                </span>
+                            </div>
+                            <span class="slider-value" id="minSpeedValue">0.8</span>
+                        </div>
+                        <input type="range" class="slider" id="minSpeedSlider" min="0.04" max="2.0" step="0.02" value="0.8">
+
+                        <!-- Educational Panel -->
+                        <div class="education-panel" id="minSpeedEducation">
+                            <div class="education-toggle" onclick="toggleEducation('minSpeedEducation')">
+                                <span class="education-toggle-text">
+                                    <span class="education-toggle-icon">📚</span>
+                                    Learn More About Min Speed
+                                </span>
+                                <span class="education-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchTab('minSpeed', 'beginner')">📚 Beginner</div>
+                                    <div class="education-tab" onclick="switchTab('minSpeed', 'intermediate')">🔬 Intermediate</div>
+                                    <div class="education-tab" onclick="switchTab('minSpeed', 'advanced')">🎓 Advanced</div>
+                                </div>
+                                <div class="education-tab-content active" id="minSpeed-beginner">
+                                    <div class="education-level">
+                                        <h4>📚 Beginner Understanding</h4>
+                                        <ul>
+                                            <li><strong>What:</strong> Slowest the car will go (even in tight corners)</li>
+                                            <li><strong>Analogy:</strong> Like keeping enough speed to stay balanced on a bicycle</li>
+                                            <li><strong>Why:</strong> Prevents stopping/stalling in difficult sections</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="minSpeed-intermediate">
+                                    <div class="education-level">
+                                        <h4>🔬 Intermediate Technical Details</h4>
+                                        <ul>
+                                            <li><strong>Technical:</strong> Lower bound for velocity commands</li>
+                                            <li><strong>Purpose:</strong> Maintains momentum through hairpins</li>
+                                            <li><strong>Typical:</strong> 20-30% of target speed</li>
+                                            <li><strong>Warning:</strong> Too low = risk of stopping, Too high = can't make tight turns</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="minSpeed-advanced">
+                                    <div class="education-level">
+                                        <h4>🎓 Advanced Theory</h4>
+                                        <ul>
+                                            <li><strong>Dynamics:</strong> Must overcome static friction <code>(v_min > μ_s * g * dt)</code></li>
+                                            <li><strong>Sensor requirements:</strong> Minimum speed for reliable odometry</li>
+                                            <li><strong>Control authority:</strong> Ensures sufficient steering response</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Max Speed -->
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <div class="slider-name-wrapper">
+                                <span class="slider-name">Max Speed (m/s)</span>
+                                <span class="help-icon">?
+                                    <div class="tooltip">Speed limit for safety. Like a governor on a go-kart. Prevents loss of control at high speeds.</div>
+                                </span>
+                            </div>
+                            <span class="slider-value" id="maxSpeedValue">1.2</span>
+                        </div>
+                        <input type="range" class="slider" id="maxSpeedSlider" min="0.16" max="8.0" step="0.1" value="1.2">
+
+                        <!-- Educational Panel -->
+                        <div class="education-panel" id="maxSpeedEducation">
+                            <div class="education-toggle" onclick="toggleEducation('maxSpeedEducation')">
+                                <span class="education-toggle-text">
+                                    <span class="education-toggle-icon">📚</span>
+                                    Learn More About Max Speed
+                                </span>
+                                <span class="education-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchTab('maxSpeed', 'beginner')">📚 Beginner</div>
+                                    <div class="education-tab" onclick="switchTab('maxSpeed', 'intermediate')">🔬 Intermediate</div>
+                                    <div class="education-tab" onclick="switchTab('maxSpeed', 'advanced')">🎓 Advanced</div>
+                                </div>
+                                <div class="education-tab-content active" id="maxSpeed-beginner">
+                                    <div class="education-level">
+                                        <h4>📚 Beginner Understanding</h4>
+                                        <ul>
+                                            <li><strong>What:</strong> Speed limit for safety (even on straights)</li>
+                                            <li><strong>Analogy:</strong> Like a governor on a go-kart</li>
+                                            <li><strong>Purpose:</strong> Prevents loss of control at high speeds</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="maxSpeed-intermediate">
+                                    <div class="education-level">
+                                        <h4>🔬 Intermediate Technical Details</h4>
+                                        <ul>
+                                            <li><strong>Technical:</strong> Upper saturation limit for velocity controller</li>
+                                            <li><strong>Safety margin:</strong> Set to 80% of tested maximum stable speed</li>
+                                            <li><strong>Track dependent:</strong> Long straights allow higher max</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="maxSpeed-advanced">
+                                    <div class="education-level">
+                                        <h4>🎓 Advanced Theory</h4>
+                                        <ul>
+                                            <li><strong>Tire limits:</strong> <code>v_max = sqrt(μ * g * R_min)</code> where μ = friction coefficient</li>
+                                            <li><strong>Sampling theorem:</strong> Max speed must satisfy: <code>v_max < (waypoint_spacing / (2 * dt))</code></li>
+                                            <li><strong>Actuator limits:</strong> Consider motor torque curves and gear ratios</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Max Angular Velocity -->
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <div class="slider-name-wrapper">
+                                <span class="slider-name">Max Angular Velocity (rad/s)</span>
+                                <span class="help-icon">?
+                                    <div class="tooltip">How fast the car can spin/turn. 1.57 rad/s = 90°/second turning rate.</div>
+                                </span>
+                            </div>
+                            <span class="slider-value" id="maxAngularValue">1.5</span>
+                        </div>
+                        <input type="range" class="slider" id="maxAngularSlider" min="0.3" max="15.0" step="0.1" value="1.5">
+
+                        <!-- Educational Panel -->
+                        <div class="education-panel" id="maxAngularEducation">
+                            <div class="education-toggle" onclick="toggleEducation('maxAngularEducation')">
+                                <span class="education-toggle-text">
+                                    <span class="education-toggle-icon">📚</span>
+                                    Learn More About Max Angular Velocity
+                                </span>
+                                <span class="education-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchTab('maxAngular', 'beginner')">📚 Beginner</div>
+                                    <div class="education-tab" onclick="switchTab('maxAngular', 'intermediate')">🔬 Intermediate</div>
+                                    <div class="education-tab" onclick="switchTab('maxAngular', 'advanced')">🎓 Advanced</div>
+                                </div>
+                                <div class="education-tab-content active" id="maxAngular-beginner">
+                                    <div class="education-level">
+                                        <h4>📚 Beginner Understanding</h4>
+                                        <ul>
+                                            <li><strong>What:</strong> How fast the car can spin/turn</li>
+                                            <li><strong>Analogy:</strong> Like the tightness of your steering wheel lock</li>
+                                            <li><strong>Visual:</strong> 1.57 rad/s = 90°/second turning rate</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="maxAngular-intermediate">
+                                    <div class="education-level">
+                                        <h4>🔬 Intermediate Technical Details</h4>
+                                        <ul>
+                                            <li><strong>Technical:</strong> Maximum yaw rate (ω_z) command</li>
+                                            <li><strong>Formula:</strong> <code>ω = v / R</code> (velocity / turning radius)</li>
+                                            <li><strong>Typical:</strong> 1.0-3.0 rad/s for 1:10 scale vehicles</li>
+                                            <li><strong>Effect:</strong> Limits minimum turning radius: <code>R_min = v / ω_max</code></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="education-tab-content" id="maxAngular-advanced">
+                                    <div class="education-level">
+                                        <h4>🎓 Advanced Theory</h4>
+                                        <ul>
+                                            <li><strong>Ackermann geometry:</strong> <code>ω_max = v_max * tan(δ_max) / L</code></li>
+                                            <li><strong>Stability:</strong> High ω causes slip → loss of control</li>
+                                            <li><strong>Tire model:</strong> Must stay within friction circle</li>
+                                            <li><strong>IMU limits:</strong> Some sensors saturate at high rotation rates</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button and Lock Status -->
+                <div class="submit-section">
+                    <button id="submitButton">
+                        📤 Submit Parameters
+                    </button>
+                    <div id="submitStatus" style="margin-top: 10px; text-align: center; color: #00ff88; font-size: 14px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle education panel expansion
+        function toggleEducation(panelId) {
+            const panel = document.getElementById(panelId);
+            panel.classList.toggle('expanded');
+        }
+
+        // Switch between education tabs
+        function switchTab(parameter, level) {
+            // Hide all tabs for this parameter
+            const allTabs = document.querySelectorAll(`#${parameter}Education .education-tab`);
+            const allContents = document.querySelectorAll(`#${parameter}Education .education-tab-content`);
+
+            allTabs.forEach(tab => tab.classList.remove('active'));
+            allContents.forEach(content => content.classList.remove('active'));
+
+            // Show selected tab
+            const selectedTab = Array.from(allTabs).find(tab =>
+                tab.textContent.toLowerCase().includes(level.toLowerCase())
+            );
+            const selectedContent = document.getElementById(`${parameter}-${level}`);
+
+            if (selectedTab) selectedTab.classList.add('active');
+            if (selectedContent) selectedContent.classList.add('active');
+        }
+
+        // Update slider values
+        document.querySelectorAll('.slider').forEach(slider => {
+            slider.addEventListener('input', function() {
+                const valueId = this.id.replace('Slider', 'Value');
+                const valueElement = document.getElementById(valueId);
+                if (valueElement) {
+                    valueElement.textContent = this.value;
+                }
+            });
+        });
+
+        // Submit button handler (simplified for demo)
+        document.getElementById('submitButton').addEventListener('click', function() {
+            const button = this;
+            const status = document.getElementById('submitStatus');
+
+            button.disabled = true;
+            button.textContent = '⏳ Submitting...';
+            status.textContent = '';
+
+            // Simulate submission
+            setTimeout(() => {
+                button.textContent = '✅ Submitted!';
+                status.textContent = 'Parameters updated successfully!';
+
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.textContent = '📤 Submit Parameters';
+                }, 2000);
+            }, 1000);
+        });
+
+        // Initialize all education panels in collapsed state
+        document.addEventListener('DOMContentLoaded', function() {
+            // Optional: Auto-expand first panel for demonstration
+            // document.getElementById('lookaheadEducation').classList.add('expanded');
+        });
+    </script>
+</body>
+</html>

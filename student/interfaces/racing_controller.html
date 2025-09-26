@@ -1,0 +1,3714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Racing Controller - Interactive Training System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Apple-inspired color palette */
+            --bg-gradient: linear-gradient(135deg, #5C7CFA 0%, #C778DD 50%, #F8B500 100%);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.25);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255, 255, 255, 0.9);
+            --text-tertiary: rgba(255, 255, 255, 0.75);
+            --success-color: #34D399;
+            --warning-color: #FBBF24;
+            --danger-color: #F87171;
+            --info-color: #60A5FA;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background orbs */
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.5;
+            animation: float 20s infinite;
+        }
+
+        body::before {
+            width: 600px;
+            height: 600px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            top: -200px;
+            right: -200px;
+        }
+
+        body::after {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            bottom: -200px;
+            left: -200px;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+
+        /* Connection Status Bar */
+        .connection-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--warning-color);
+            z-index: 10000;
+            transition: all 0.3s ease;
+        }
+
+        .connection-bar.connecting {
+            background: var(--warning-color);
+            animation: pulse-bar 1.5s infinite;
+        }
+
+        .connection-bar.connected {
+            background: var(--success-color);
+        }
+
+        .connection-bar.error {
+            background: var(--danger-color);
+        }
+
+        @keyframes pulse-bar {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Registration Modal with Glassmorphism */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9000;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .registration-modal {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--glass-shadow);
+            animation: slideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .modal-header h2 {
+            color: var(--text-primary);
+            font-size: 2em;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 10px;
+        }
+
+        /* Version display */
+        .version-display {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 0.75em;
+            color: #667eea;
+            font-family: monospace;
+        }
+
+        .version-display .version-number {
+            font-weight: bold;
+        }
+
+        .version-display .update-time {
+            color: var(--text-secondary);
+            margin-left: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-control.error {
+            border-color: var(--danger-color);
+        }
+
+        /* Country Autocomplete */
+        .autocomplete-wrapper {
+            position: relative;
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-list.active {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .country-flag {
+            font-size: 1.2em;
+        }
+
+        .error-message {
+            color: var(--danger-color);
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 16px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.6s;
+        }
+
+        .btn-submit:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Connection Warning */
+        .connection-warning {
+            background: linear-gradient(135deg, #ff6b6b, #ff4444);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .connection-warning.hidden {
+            display: none;
+        }
+
+        /* Waiting Room */
+        .waiting-room {
+            min-height: 100vh;
+            padding: 20px;
+            display: none;
+        }
+
+        .waiting-room.active {
+            display: block;
+        }
+
+        .waiting-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .waiting-header {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .queue-position {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 20px 0;
+            box-shadow: 0 5px 20px rgba(255, 140, 0, 0.3);
+        }
+
+        .queue-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .info-card .label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .active-racers {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .racer-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .racer-card {
+            background: linear-gradient(135deg, #e0f2fe, #ddd6fe);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .racer-card.active {
+            border-color: var(--success-color);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .racer-card.empty {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border: 2px dashed #ccc;
+        }
+
+        .car-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .racer-name {
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .racer-country {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        /* Control Panel (Active State) */
+        .control-panel {
+            display: none;
+            padding: 20px;
+        }
+
+        .control-panel.active {
+            display: block;
+        }
+
+        .control-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Emergency Status Panel Styles */
+        .emergency-status-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(26, 32, 44, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 15px 20px;
+            min-width: 250px;
+            z-index: 1100; /* Higher than lock overlay (1000) to ensure visibility */
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .emergency-status-panel.active {
+            border-color: #ff4444;
+            animation: emergencyPulse 1s infinite;
+        }
+
+        @keyframes emergencyPulse {
+            0%, 100% { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+            50% { box-shadow: 0 10px 40px rgba(255, 68, 68, 0.5); }
+        }
+
+        .emergency-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .emergency-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .emergency-status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4a5568;
+            display: inline-block;
+            animation: none;
+        }
+
+        .emergency-status-indicator.enabled {
+            background: #00ff88;
+        }
+
+        .emergency-status-indicator.active {
+            background: #ff4444;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .emergency-status-text {
+            font-size: 0.85em;
+            color: #a0aec0;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .emergency-status-text.normal {
+            color: #00ff88;
+        }
+
+        .emergency-status-text.warning {
+            color: #fbbf24;
+        }
+
+        .emergency-status-text.emergency {
+            color: #ff4444;
+            font-weight: 600;
+        }
+
+        .emergency-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .emergency-metric {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+        }
+
+        .emergency-metric-label {
+            color: #a0aec0;
+        }
+
+        .emergency-metric-value {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .stuck-meter {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .stuck-meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88 0%, #fbbf24 50%, #ff4444 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .emergency-active-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, #ff4444, #ff6666);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 600;
+            z-index: 2000;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        .emergency-active-banner.active {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+
+        .parameter-controls {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .parameter-controls h2 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            font-weight: 700;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            letter-spacing: -0.5px;
+        }
+
+        .slider-group {
+            margin-bottom: 35px; /* Increased spacing for touch */
+            position: relative;
+            /* Add touch area padding */
+            padding: 8px 0;
+        }
+
+        /* Touch-friendly enhancements */
+        @media (pointer: coarse) {
+            .slider-group {
+                margin-bottom: 40px;
+                padding: 10px 0;
+            }
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .slider-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.1em;
+            letter-spacing: -0.3px;
+        }
+
+        .slider-value {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--text-primary);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            min-width: 60px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(255, 255, 255, 0.1);
+        }
+
+        .slider {
+            width: 100%;
+            height: 12px; /* Increased from 6px for touch */
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            outline: none;
+            -webkit-appearance: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Touch optimizations */
+            touch-action: none; /* Prevent scrolling when dragging */
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+
+        .slider:hover {
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 32px; /* Increased from 20px - Apple recommends 44px min touch target */
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 0 0 rgba(255, 255, 255, 0.4);
+            transition: all 0.2s ease; /* Faster response */
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Larger touch target on mobile */
+        @media (pointer: coarse) {
+            .slider::-webkit-slider-thumb {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        .slider::-webkit-slider-thumb:hover,
+        .slider::-webkit-slider-thumb:active {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.15);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3), 0 0 0 10px rgba(255, 255, 255, 0.15);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 32px; /* Increased from 20px */
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        @media (pointer: coarse) {
+            .slider::-moz-range-thumb {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @media (max-width: 768px) {
+            .racer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Educational Enhancement Styles - IMPROVED CONTRAST */
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: rgba(102, 126, 234, 0.3);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 50%;
+            cursor: help;
+            transition: all 0.3s ease;
+            position: relative;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.95);
+            margin-left: 8px;
+        }
+
+        .help-icon:hover {
+            background: rgba(102, 126, 234, 0.5);
+            transform: scale(1.1);
+            color: white;
+        }
+
+        .help-icon:hover .help-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .help-tooltip {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%) translateY(5px);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            min-width: 250px;
+            max-width: 350px;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.4;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 10000;
+            pointer-events: none;
+            white-space: normal;
+        }
+
+        .help-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-style: solid;
+            border-width: 8px 8px 0 8px;
+            border-color: #764ba2 transparent transparent transparent;
+        }
+
+        /* Expandable Education Panel Styles - IMPROVED CONTRAST */
+        .education-panel {
+            margin-top: 15px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+            border: 1px solid rgba(102, 126, 234, 0.35);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .education-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .education-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .education-toggle-text {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .education-toggle-arrow {
+            transition: transform 0.3s ease;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 20px;
+        }
+
+        .education-panel.expanded .education-toggle-arrow {
+            transform: rotate(180deg);
+        }
+
+        .education-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+        }
+
+        .education-panel.expanded .education-content {
+            max-height: 800px;
+            overflow-y: auto;
+        }
+
+        .education-tabs {
+            display: flex;
+            gap: 10px;
+            padding: 15px 15px 0;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .education-tab {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.95);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .education-tab:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: white;
+        }
+
+        .education-tab.active {
+            background: linear-gradient(135deg, #00ff88, #00bbff);
+            color: #1a202c;
+            border-color: transparent;
+        }
+
+        .education-tab-content {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.25);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .education-tab-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .education-tab-panel.active {
+            display: block;
+        }
+
+        .education-section {
+            margin-bottom: 15px;
+        }
+
+        .education-section h5 {
+            color: #00ff88;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .education-section p {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 0 0 10px 0;
+            font-weight: 400;
+        }
+
+        .education-section ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .education-section li {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 5px;
+            font-weight: 400;
+        }
+
+        .formula {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+            margin: 10px 0;
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            text-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Lock Overlay Styles */
+        .lock-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            z-index: 1000;
+        }
+
+        .lock-overlay.active {
+            display: flex;
+        }
+
+        .lock-message {
+            background: linear-gradient(135deg, #1a202c, #2d3748);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid #f6ad55;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .lock-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: lock-pulse 2s infinite;
+        }
+
+        @keyframes lock-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .lock-text {
+            font-size: 1.5em;
+            color: #f6ad55;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .lock-subtext {
+            font-size: 1em;
+            color: #cbd5e0;
+            opacity: 0.8;
+        }
+
+        /* Submit Button Enhanced Styles */
+        #submitButton {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            transform: translateY(0);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        #submitButton:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        #submitButton:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        #submitButton:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+            box-shadow: none;
+        }
+
+        /* Submit Status Feedback */
+        #submitStatus {
+            min-height: 55px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        #submitStatus:not(:empty) {
+            border-color: currentColor !important;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Touch-friendly submit button hover effects */
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4) !important;
+        }
+
+        .submit-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        /* Algorithm Selector Enhanced */
+        #algorithmSelect {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            background: #1a202c;
+            color: #e2e8f0;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        #algorithmSelect:hover:not(:disabled) {
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        #algorithmSelect:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+
+        #algorithmSelect:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            border-color: #4a5568;
+        }
+
+        #algorithmSelect option {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-bar" id="connectionBar"></div>
+
+    <!-- Registration Modal -->
+    <div class="modal-overlay" id="registrationModal">
+        <div class="registration-modal">
+            <div class="modal-header">
+                <!-- Version display -->
+                <div class="version-display">
+                    <span class="version-number">v1.6.4</span>
+                    <span class="update-time" id="updateTime"></span>
+                </div>
+                <div style="font-size: 3em; margin-bottom: 20px;">🏎️</div>
+                <h2>Join Racing Session</h2>
+                <p style="color: var(--text-secondary);">Register to participate in the training</p>
+            </div>
+
+            <!-- Connection Warning -->
+            <div class="connection-warning hidden" id="connectionWarning">
+                ⚠️ Cannot connect to Firebase. Please check your internet connection.
+            </div>
+
+            <form id="registrationForm">
+                <div class="form-group">
+                    <label for="studentName">Full Name</label>
+                    <input type="text" id="studentName" class="form-control" placeholder="Enter your full name" required>
+                    <div class="error-message" id="nameError">Please enter your full name</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="studentCountry">Country</label>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="studentCountry" class="form-control" placeholder="Type your country name..." required>
+                        <div class="autocomplete-list" id="countryList"></div>
+                    </div>
+                    <div class="error-message" id="countryError">Please select your country</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="experience">Experience Level (Optional)</label>
+                    <select id="experience" class="form-control">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    Join Waiting Room
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Waiting Room -->
+    <div class="waiting-room" id="waitingRoom">
+        <div class="waiting-container">
+            <div class="waiting-header">
+                <h1>Waiting Room</h1>
+                <div class="queue-position">
+                    Position in Queue: <span id="queuePosition">-</span>
+                </div>
+                <p style="color: var(--text-secondary); margin-top: 20px;">
+                    Please wait for instructor approval. You'll be notified when a car becomes available.
+                </p>
+            </div>
+
+            <div class="queue-info">
+                <div class="info-card">
+                    <div class="value" id="waitingCount">0</div>
+                    <div class="label">Students Waiting</div>
+                </div>
+                <div class="info-card">
+                    <div class="value" id="activeCount">0</div>
+                    <div class="label">Active Racers</div>
+                </div>
+                <div class="info-card">
+                    <div class="value" id="estimatedWait">-</div>
+                    <div class="label">Est. Wait Time</div>
+                </div>
+            </div>
+
+            <div class="active-racers">
+                <h2>🏁 Current Active Racers</h2>
+                <div class="racer-grid" id="racerGrid">
+                    <!-- Car 1 -->
+                    <div class="racer-card empty" data-car="1">
+                        <div class="car-icon">🏎️</div>
+                        <div class="racer-name">Car 1</div>
+                        <div class="racer-country">Empty</div>
+                    </div>
+                    <!-- Car 2 -->
+                    <div class="racer-card empty" data-car="2">
+                        <div class="car-icon">🏎️</div>
+                        <div class="racer-name">Car 2</div>
+                        <div class="racer-country">Empty</div>
+                    </div>
+                    <!-- Car 3 -->
+                    <div class="racer-card empty" data-car="3">
+                        <div class="car-icon">🏎️</div>
+                        <div class="racer-name">Car 3</div>
+                        <div class="racer-country">Empty</div>
+                    </div>
+                    <!-- Car 4 -->
+                    <div class="racer-card empty" data-car="4">
+                        <div class="car-icon">🏎️</div>
+                        <div class="racer-name">Car 4</div>
+                        <div class="racer-country">Empty</div>
+                    </div>
+                    <!-- Car 5 -->
+                    <div class="racer-card empty" data-car="5">
+                        <div class="car-icon">🏎️</div>
+                        <div class="racer-name">Car 5</div>
+                        <div class="racer-country">Empty</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Panel (Active Racing) -->
+    <!-- Emergency Active Banner -->
+    <div class="emergency-active-banner" id="emergencyBanner">
+        ⚠️ EMERGENCY ESCAPE ACTIVE ⚠️
+    </div>
+
+    <!-- Emergency Status Panel -->
+    <div class="emergency-status-panel" id="emergencyStatusPanel" style="display: none;">
+        <div class="emergency-header">
+            <div class="emergency-title">
+                🚨 Emergency System
+                <span class="emergency-status-indicator" id="emergencyIndicator"></span>
+            </div>
+            <span class="emergency-status-text" id="emergencyStatusText">DISABLED</span>
+        </div>
+
+        <div class="emergency-metrics">
+            <div class="emergency-metric">
+                <span class="emergency-metric-label">Status:</span>
+                <span class="emergency-metric-value" id="emergencyState">Inactive</span>
+            </div>
+            <div class="emergency-metric">
+                <span class="emergency-metric-label">Movement Speed:</span>
+                <span class="emergency-metric-value" id="movementSpeed">0.0 m/s</span>
+            </div>
+            <div class="emergency-metric">
+                <span class="emergency-metric-label">Stuck Events:</span>
+                <span class="emergency-metric-value" id="stuckEvents">0</span>
+            </div>
+
+            <div style="margin-top: 8px;">
+                <div class="emergency-metric-label" style="margin-bottom: 4px;">Detection Progress:</div>
+                <div class="stuck-meter">
+                    <div class="stuck-meter-fill" id="stuckMeterFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-panel" id="controlPanel">
+        <div class="control-container">
+            <div class="parameter-controls">
+                <h2>🎮 Racing Parameters - Car <span id="carNumber">-</span></h2>
+
+                <!-- Algorithm Display (Pure Pursuit Only) -->
+                <div class="algorithm-selection" style="margin-bottom: 25px; padding: 20px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);">
+                    <div style="color: var(--text-primary); font-weight: 700; font-size: 1.2em; margin-bottom: 10px; letter-spacing: -0.3px;">
+                        🎯 Control Algorithm: Pure Pursuit
+                    </div>
+                    <div style="font-size: 0.9em; color: var(--text-secondary); font-style: italic;">
+                        💡 Adjust the parameters below to control how your car follows the racing line
+                    </div>
+                    <!-- Hidden select to maintain compatibility -->
+                    <select id="algorithmSelect" style="display: none;">
+                        <option value="pure_pursuit" selected>Pure Pursuit Controller</option>
+                    </select>
+                </div>
+
+                <!-- Pure Pursuit Parameters Section -->
+                <div class="param-section" data-algorithm="pure_pursuit">
+                    <!-- Lookahead Parameters for Pure Pursuit -->
+                    <div style="margin-bottom: 20px; padding: 20px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <h4 style="color: var(--text-primary); margin-bottom: 15px; font-weight: 700; letter-spacing: -0.3px;">🎯 Pure Pursuit Parameters</h4>
+
+                        <div class="slider-group">
+                            <div class="slider-label">
+                                <span class="slider-name">
+                                    Lookahead Distance (m)
+                                    <span class="help-icon">?
+                                        <div class="help-tooltip">
+                                            The distance ahead on the path where the car aims towards. Like looking ahead while driving - look further for smoother turns, closer for tighter control.
+                                        </div>
+                                    </span>
+                                </span>
+                                <span class="slider-value" id="lookaheadValue">2.0</span>
+                            </div>
+                            <input type="range" class="slider" id="lookaheadSlider" min="0.3" max="15.0" step="0.1" value="2.0">
+
+                            <!-- Education Panel for Lookahead Distance -->
+                            <div class="education-panel" id="lookaheadEducation">
+                                <div class="education-toggle" onclick="toggleEducationPanel('lookaheadEducation')">
+                                    <span class="education-toggle-text">
+                                        📚 Learn about Lookahead Distance
+                                    </span>
+                                    <span class="education-toggle-arrow">▼</span>
+                                </div>
+                                <div class="education-content">
+                                    <div class="education-tabs">
+                                        <div class="education-tab active" onclick="switchEducationTab('lookahead', 'beginner', this)">Beginner</div>
+                                        <div class="education-tab" onclick="switchEducationTab('lookahead', 'intermediate', this)">Intermediate</div>
+                                        <div class="education-tab" onclick="switchEducationTab('lookahead', 'advanced', this)">Advanced</div>
+                                    </div>
+                                    <div class="education-tab-content">
+                                        <div id="lookahead-beginner" class="education-tab-panel active">
+                                            <div class="education-section">
+                                                <h5>What is Lookahead Distance?</h5>
+                                                <p>Imagine you're riding a bicycle. When you look far ahead, you can plan smooth turns. When you look close to your front wheel, you make sharper but less smooth turns. That's exactly what lookahead distance does for your racing car!</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Simple Guidelines</h5>
+                                                <ul>
+                                                    <li><strong>Smaller values:</strong> Tighter path following but may oscillate</li>
+                                                    <li><strong>Medium values:</strong> Balanced between accuracy and smoothness</li>
+                                                    <li><strong>Larger values:</strong> Smoother motion but less precise cornering</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Start with low values and increase gradually while testing</p>
+                                            </div>
+                                        </div>
+                                        <div id="lookahead-intermediate" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>How It Works</h5>
+                                                <p>The algorithm finds a point on the racing line that's exactly this distance ahead of the car. The car then steers towards this "carrot" point, creating a smooth pursuit behavior.</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Track-Specific Tuning</h5>
+                                                <ul>
+                                                    <li><strong>Tight tracks:</strong> Use smaller lookahead for better cornering</li>
+                                                    <li><strong>Fast tracks:</strong> Use larger lookahead for stability</li>
+                                                    <li><strong>Mixed tracks:</strong> Start moderate and adjust based on performance</li>
+                                                </ul>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Common Problems</h5>
+                                                <ul>
+                                                    <li><strong>Corner cutting:</strong> Your lookahead might be too large</li>
+                                                    <li><strong>Oscillation:</strong> Your lookahead might be too small</li>
+                                                    <li><strong>Slow cornering:</strong> Experiment to find optimal balance</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div id="lookahead-advanced" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>Mathematical Foundation</h5>
+                                                <p>Pure Pursuit uses arc geometry to calculate steering angle:</p>
+                                                <div class="formula">δ = f(wheelbase, heading_error, lookahead)</div>
+                                                <p style="font-style: italic; color: #cbd5e1;">The steering angle depends on robot geometry and path deviation</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Dynamic Lookahead</h5>
+                                                <p>Advanced controllers adjust lookahead based on speed:</p>
+                                                <div class="formula">lookahead ∝ velocity</div>
+                                                <p style="font-style: italic; color: #cbd5e1;">Speed-adaptive behavior - actual relationship varies by implementation</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Stability Principles</h5>
+                                                <ul>
+                                                    <li><strong>Lower bound:</strong> Related to robot wheelbase</li>
+                                                    <li><strong>Upper bound:</strong> Limited by turn radius</li>
+                                                    <li><strong>Optimization:</strong> Often proportional to velocity</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ These are theoretical guidelines - test with your specific system</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label">
+                                <span class="slider-name">
+                                    Lookahead Gain
+                                    <span class="help-icon">?
+                                        <div class="help-tooltip">
+                                            Multiplier that makes lookahead distance proportional to speed. Higher values = look further when going fast, creating dynamic adaptation.
+                                        </div>
+                                    </span>
+                                </span>
+                                <span class="slider-value" id="lookaheadGainValue">1.0</span>
+                            </div>
+                            <input type="range" class="slider" id="lookaheadGainSlider" min="0.2" max="10.0" step="0.1" value="1.0">
+
+                            <!-- Education Panel for Lookahead Gain -->
+                            <div class="education-panel" id="lookaheadGainEducation">
+                                <div class="education-toggle" onclick="toggleEducationPanel('lookaheadGainEducation')">
+                                    <span class="education-toggle-text">
+                                        📚 Learn about Lookahead Gain
+                                    </span>
+                                    <span class="education-toggle-arrow">▼</span>
+                                </div>
+                                <div class="education-content">
+                                    <div class="education-tabs">
+                                        <div class="education-tab active" onclick="switchEducationTab('lookaheadgain', 'beginner', this)">Beginner</div>
+                                        <div class="education-tab" onclick="switchEducationTab('lookaheadgain', 'intermediate', this)">Intermediate</div>
+                                        <div class="education-tab" onclick="switchEducationTab('lookaheadgain', 'advanced', this)">Advanced</div>
+                                    </div>
+                                    <div class="education-tab-content">
+                                        <div id="lookaheadgain-beginner" class="education-tab-panel active">
+                                            <div class="education-section">
+                                                <h5>What is Lookahead Gain?</h5>
+                                                <p>Think of it as automatic vision adjustment. When you drive faster, you naturally look further ahead. This parameter controls how much your "vision" extends with speed.</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Simple Guidelines</h5>
+                                                <ul>
+                                                    <li><strong>Lower gain:</strong> Less speed-dependent adaptation</li>
+                                                    <li><strong>Medium gain:</strong> Balanced speed-based scaling</li>
+                                                    <li><strong>Higher gain:</strong> More aggressive speed adaptation</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Test incrementally - gain affects high-speed behavior significantly</p>
+                                            </div>
+                                        </div>
+                                        <div id="lookaheadgain-intermediate" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>Dynamic Lookahead Concept</h5>
+                                                <div class="formula">lookahead = base + (gain × speed)</div>
+                                                <p style="font-style: italic; color: #cbd5e1;">Higher speeds result in looking further ahead when gain is positive</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Tuning Strategy</h5>
+                                                <ul>
+                                                    <li><strong>For stability:</strong> Try increasing gain gradually</li>
+                                                    <li><strong>For agility:</strong> Try decreasing gain gradually</li>
+                                                    <li><strong>Mixed tracks:</strong> Start with moderate gain</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div id="lookaheadgain-advanced" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>Speed-Adaptive Control Theory</h5>
+                                                <p>Lookahead gain implements velocity-proportional path tracking:</p>
+                                                <div class="formula">lookahead = bounded(gain × velocity + base)</div>
+                                                <p style="font-style: italic; color: #cbd5e1;">Actual implementation depends on your controller design</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Stability Implications</h5>
+                                                <ul>
+                                                    <li><strong>Too low:</strong> May cause high-speed oscillations</li>
+                                                    <li><strong>Too high:</strong> May cause corner cutting at speed</li>
+                                                    <li><strong>Balance:</strong> Related to track width and maximum speed</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Optimal gain depends on your specific track and robot</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label">
+                                <span class="slider-name">
+                                    Min Lookahead (m)
+                                    <span class="help-icon">?
+                                        <div class="help-tooltip">
+                                            The minimum distance the car will ever look ahead, even at very low speeds. Prevents the car from becoming too shortsighted in tight sections.
+                                        </div>
+                                    </span>
+                                </span>
+                                <span class="slider-value" id="minLookaheadValue">2.0</span>
+                            </div>
+                            <input type="range" class="slider" id="minLookaheadSlider" min="0.2" max="10.0" step="0.1" value="2.0">
+
+                            <!-- Education Panel for Min Lookahead -->
+                            <div class="education-panel" id="minLookaheadEducation">
+                                <div class="education-toggle" onclick="toggleEducationPanel('minLookaheadEducation')">
+                                    <span class="education-toggle-text">
+                                        📚 Learn about Minimum Lookahead
+                                    </span>
+                                    <span class="education-toggle-arrow">▼</span>
+                                </div>
+                                <div class="education-content">
+                                    <div class="education-tabs">
+                                        <div class="education-tab active" onclick="switchEducationTab('minlookahead', 'beginner', this)">Beginner</div>
+                                        <div class="education-tab" onclick="switchEducationTab('minlookahead', 'intermediate', this)">Intermediate</div>
+                                        <div class="education-tab" onclick="switchEducationTab('minlookahead', 'advanced', this)">Advanced</div>
+                                    </div>
+                                    <div class="education-tab-content">
+                                        <div id="minlookahead-beginner" class="education-tab-panel active">
+                                            <div class="education-section">
+                                                <h5>What is Minimum Lookahead?</h5>
+                                                <p>It's the closest your car will ever look, like setting a minimum safe following distance. Even when crawling slowly, the car won't look closer than this.</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Track Considerations</h5>
+                                                <ul>
+                                                    <li><strong>Tight tracks:</strong> Use lower minimum values</li>
+                                                    <li><strong>Normal tracks:</strong> Use moderate minimum values</li>
+                                                    <li><strong>High-speed tracks:</strong> Use higher minimum values</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Start conservatively and adjust based on oscillation</p>
+                                            </div>
+                                        </div>
+                                        <div id="minlookahead-intermediate" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>Why It Matters</h5>
+                                                <p>Min lookahead prevents instability at low speeds. Too small and the car oscillates. Too large and it can't navigate tight turns.</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Relationship to Track</h5>
+                                                <ul>
+                                                    <li><strong>Guideline:</strong> Related to your tightest turn radius</li>
+                                                    <li><strong>Safety margin:</strong> Should exceed robot length</li>
+                                                    <li><strong>Stability:</strong> Consider control loop timing</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div id="minlookahead-advanced" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>Control System Stability</h5>
+                                                <div class="formula">min_lookahead ∝ min_speed × control_period</div>
+                                                <p style="font-style: italic; color: #cbd5e1;">Ensure sufficient preview time for control decisions</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Optimization</h5>
+                                                <ul>
+                                                    <li><strong>Minimize for:</strong> Tight technical sections</li>
+                                                    <li><strong>Increase for:</strong> High-speed stability</li>
+                                                    <li><strong>Critical:</strong> Keep within turn radius limits</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Test at lowest expected speeds first</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label">
+                                <span class="slider-name">
+                                    Max Lookahead (m)
+                                    <span class="help-icon">?
+                                        <div class="help-tooltip">
+                                            The maximum distance the car will look ahead, even at top speed. Caps the lookahead to prevent looking too far on straights.
+                                        </div>
+                                    </span>
+                                </span>
+                                <span class="slider-value" id="maxLookaheadValue">3.3</span>
+                            </div>
+                            <input type="range" class="slider" id="maxLookaheadSlider" min="0.4" max="20.0" step="0.1" value="3.3">
+
+                            <!-- Education Panel for Max Lookahead -->
+                            <div class="education-panel" id="maxLookaheadEducation">
+                                <div class="education-toggle" onclick="toggleEducationPanel('maxLookaheadEducation')">
+                                    <span class="education-toggle-text">
+                                        📚 Learn about Maximum Lookahead
+                                    </span>
+                                    <span class="education-toggle-arrow">▼</span>
+                                </div>
+                                <div class="education-content">
+                                    <div class="education-tabs">
+                                        <div class="education-tab active" onclick="switchEducationTab('maxlookahead', 'beginner', this)">Beginner</div>
+                                        <div class="education-tab" onclick="switchEducationTab('maxlookahead', 'intermediate', this)">Intermediate</div>
+                                        <div class="education-tab" onclick="switchEducationTab('maxlookahead', 'advanced', this)">Advanced</div>
+                                    </div>
+                                    <div class="education-tab-content">
+                                        <div id="maxlookahead-beginner" class="education-tab-panel active">
+                                            <div class="education-section">
+                                                <h5>What is Maximum Lookahead?</h5>
+                                                <p>It's the furthest your car will ever look ahead. Like having a maximum sight distance - you don't need to see the next town when driving on the current street!</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Strategy Options</h5>
+                                                <ul>
+                                                    <li><strong>Conservative:</strong> Lower maximum for safer control</li>
+                                                    <li><strong>Balanced:</strong> Moderate maximum for good compromise</li>
+                                                    <li><strong>Aggressive:</strong> Higher maximum for speed (requires tuning)</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Higher values need better-tuned other parameters</p>
+                                            </div>
+                                        </div>
+                                        <div id="maxlookahead-intermediate" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>Strategic Importance</h5>
+                                                <p>Max lookahead determines how smooth your racing line will be on fast sections. Too high causes corner cutting, too low causes unnecessary steering.</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Track-Based Tuning</h5>
+                                                <ul>
+                                                    <li><strong>Long straights:</strong> Can use higher maximum values</li>
+                                                    <li><strong>Technical tracks:</strong> Keep maximum moderate</li>
+                                                    <li><strong>Mixed layouts:</strong> Balance for both sections</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div id="maxlookahead-advanced" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>Theoretical Limits</h5>
+                                                <div class="formula">max_lookahead ∝ straight_section_length</div>
+                                                <p style="font-style: italic; color: #cbd5e1;">Should be proportional to your track's geometry</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Performance Trade-offs</h5>
+                                                <ul>
+                                                    <li><strong>Computation:</strong> Longer lookahead requires more processing</li>
+                                                    <li><strong>Accuracy:</strong> Balance preview vs. reaction capability</li>
+                                                    <li><strong>Principle:</strong> Related to max speed and preview time</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Test on longest straight section first</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-label">
+                                <span class="slider-name">
+                                    Waypoint Tolerance (m)
+                                    <span class="help-icon">?
+                                        <div class="help-tooltip">
+                                            How close the car needs to get to a waypoint to consider it "reached". Larger values mean smoother but less precise path following.
+                                        </div>
+                                    </span>
+                                </span>
+                                <span class="slider-value" id="waypointToleranceValue">2.5</span>
+                            </div>
+                            <input type="range" class="slider" id="waypointToleranceSlider" min="0.5" max="25.0" step="0.5" value="2.5">
+
+                            <!-- Education Panel for Waypoint Tolerance -->
+                            <div class="education-panel" id="waypointToleranceEducation">
+                                <div class="education-toggle" onclick="toggleEducationPanel('waypointToleranceEducation')">
+                                    <span class="education-toggle-text">
+                                        📚 Learn about Waypoint Tolerance
+                                    </span>
+                                    <span class="education-toggle-arrow">▼</span>
+                                </div>
+                                <div class="education-content">
+                                    <div class="education-tabs">
+                                        <div class="education-tab active" onclick="switchEducationTab('waypoint', 'beginner', this)">Beginner</div>
+                                        <div class="education-tab" onclick="switchEducationTab('waypoint', 'intermediate', this)">Intermediate</div>
+                                        <div class="education-tab" onclick="switchEducationTab('waypoint', 'advanced', this)">Advanced</div>
+                                    </div>
+                                    <div class="education-tab-content">
+                                        <div id="waypoint-beginner" class="education-tab-panel active">
+                                            <div class="education-section">
+                                                <h5>What is Waypoint Tolerance?</h5>
+                                                <p>Imagine driving through checkpoints - this determines how close you need to get to "check off" each point. Bigger circles = easier to hit but less precise path.</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Quick Guidelines</h5>
+                                                <ul>
+                                                    <li><strong>Tighter tolerance:</strong> More precise path following but may zigzag</li>
+                                                    <li><strong>Moderate tolerance:</strong> Good balance for most situations</li>
+                                                    <li><strong>Looser tolerance:</strong> Very smooth but may deviate from ideal path</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Consider your robot's size when setting tolerance</p>
+                                            </div>
+                                        </div>
+                                        <div id="waypoint-intermediate" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>Impact on Racing Line</h5>
+                                                <p>Tolerance creates a "tube" around the racing line. The car can move freely within this tube, naturally smoothing the path but potentially missing apex points.</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Speed vs Precision Trade-off</h5>
+                                                <ul>
+                                                    <li><strong>Tight tolerance:</strong> Better for time trials</li>
+                                                    <li><strong>Loose tolerance:</strong> Better for wheel-to-wheel racing</li>
+                                                    <li><strong>Variable strategy:</strong> Adjust based on track section</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div id="waypoint-advanced" class="education-tab-panel">
+                                            <div class="education-section">
+                                                <h5>Path Smoothing Mathematics</h5>
+                                                <div class="formula">allowed_deviation ≤ tolerance_setting</div>
+                                                <p style="font-style: italic; color: #cbd5e1;">The controller allows deviation within your tolerance setting</p>
+                                            </div>
+                                            <div class="education-section">
+                                                <h5>Optimization Criteria</h5>
+                                                <ul>
+                                                    <li><strong>Minimum:</strong> Should exceed robot width fraction</li>
+                                                    <li><strong>Racing line:</strong> Proportional to corner radius</li>
+                                                    <li><strong>Computation:</strong> Larger tolerance reduces processing</li>
+                                                </ul>
+                                                <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Test with visualization to see actual path deviation</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Speed Parameters -->
+                <div style="margin-bottom: 20px; padding: 20px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <h4 style="color: var(--text-primary); margin-bottom: 15px; font-weight: 700; letter-spacing: -0.3px;">🏁 Speed Control</h4>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span class="slider-name">
+                                Target Speed (m/s)
+                                <span class="help-icon">?
+                                    <div class="help-tooltip">
+                                        The desired speed for your car. Balance between going fast enough to win and slow enough to maintain control on turns!
+                                    </div>
+                                </span>
+                            </span>
+                            <span class="slider-value" id="targetSpeedValue">1.0</span>
+                        </div>
+                        <input type="range" class="slider" id="targetSpeedSlider" min="0.1" max="5.0" step="0.1" value="1.0">
+
+                        <!-- Education Panel for Target Speed -->
+                        <div class="education-panel" id="targetSpeedEducation">
+                            <div class="education-toggle" onclick="toggleEducationPanel('targetSpeedEducation')">
+                                <span class="education-toggle-text">
+                                    📚 Learn about Target Speed
+                                </span>
+                                <span class="education-toggle-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchEducationTab('targetspeed', 'beginner', this)">Beginner</div>
+                                    <div class="education-tab" onclick="switchEducationTab('targetspeed', 'intermediate', this)">Intermediate</div>
+                                    <div class="education-tab" onclick="switchEducationTab('targetspeed', 'advanced', this)">Advanced</div>
+                                </div>
+                                <div class="education-tab-content">
+                                    <div id="targetspeed-beginner" class="education-tab-panel active">
+                                        <div class="education-section">
+                                            <h5>What is Target Speed?</h5>
+                                            <p>This is how fast you want your car to go. It's like setting cruise control - the car will try to maintain this speed whenever possible.</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Quick Start Guide</h5>
+                                            <ul>
+                                                <li><strong>Beginner:</strong> Start with very low speeds</li>
+                                                <li><strong>Intermediate:</strong> Gradually increase as control improves</li>
+                                                <li><strong>Advanced:</strong> Push towards system limits carefully</li>
+                                            </ul>
+                                            <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Always have emergency stop ready when testing speeds</p>
+                                        </div>
+                                    </div>
+                                    <div id="targetspeed-intermediate" class="education-tab-panel">
+                                        <div class="education-section">
+                                            <h5>Speed vs. Control Trade-off</h5>
+                                            <p>Higher speeds mean faster lap times but require better tuned controllers. Your other parameters must be adjusted to handle the increased speed.</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Speed Strategy</h5>
+                                            <ul>
+                                                <li><strong>Start slow:</strong> Get stable control first</li>
+                                                <li><strong>Gradually increase:</strong> Use small increments only</li>
+                                                <li><strong>Watch for problems:</strong> Oscillation, corner cutting</li>
+                                                <li><strong>Adjust other params:</strong> Lookahead, angular velocity</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div id="targetspeed-advanced" class="education-tab-panel">
+                                        <div class="education-section">
+                                            <h5>Dynamic Speed Control</h5>
+                                            <p>Advanced systems adjust speed based on track conditions:</p>
+                                            <div class="formula">target_speed ∝ sqrt(max_acceleration × turn_radius)</div>
+                                            <p style="font-style: italic; color: #cbd5e1;">Theoretical relationship - actual limits depend on your system</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Performance Limits</h5>
+                                            <ul>
+                                                <li><strong>Traction limit:</strong> Related to grip and turn radius</li>
+                                                <li><strong>Control bandwidth:</strong> Higher speeds need faster control</li>
+                                                <li><strong>Lookahead scaling:</strong> Must scale with speed</li>
+                                            </ul>
+                                            <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Test limits in safe, controlled environment</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span class="slider-name">
+                                Min Speed (m/s)
+                                <span class="help-icon">?
+                                    <div class="help-tooltip">
+                                        The slowest your car will go, even in the tightest turns. Prevents the car from stopping completely while maintaining control.
+                                    </div>
+                                </span>
+                            </span>
+                            <span class="slider-value" id="minSpeedValue">0.8</span>
+                        </div>
+                        <input type="range" class="slider" id="minSpeedSlider" min="0.04" max="2.0" step="0.02" value="0.8">
+
+                        <!-- Education Panel for Min Speed -->
+                        <div class="education-panel" id="minSpeedEducation">
+                            <div class="education-toggle" onclick="toggleEducationPanel('minSpeedEducation')">
+                                <span class="education-toggle-text">
+                                    📚 Learn about Minimum Speed
+                                </span>
+                                <span class="education-toggle-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchEducationTab('minspeed', 'beginner', this)">Beginner</div>
+                                    <div class="education-tab" onclick="switchEducationTab('minspeed', 'intermediate', this)">Intermediate</div>
+                                    <div class="education-tab" onclick="switchEducationTab('minspeed', 'advanced', this)">Advanced</div>
+                                </div>
+                                <div class="education-tab-content">
+                                    <div id="minspeed-beginner" class="education-tab-panel active">
+                                        <div class="education-section">
+                                            <h5>What is Minimum Speed?</h5>
+                                            <p>It's like the idle speed of your car - the slowest it will ever go. Even in hairpin turns, the car maintains this minimum forward momentum.</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Strategy Options</h5>
+                                            <ul>
+                                                <li><strong>Cautious:</strong> Very low minimum for tight control</li>
+                                                <li><strong>Balanced:</strong> Moderate minimum for stability</li>
+                                                <li><strong>Aggressive:</strong> Higher minimum to maintain momentum</li>
+                                            </ul>
+                                            <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Lower values give more control in tight sections</p>
+                                        </div>
+                                    </div>
+                                    <div id="minspeed-intermediate" class="education-tab-panel">
+                                        <div class="education-section">
+                                            <h5>Corner Performance</h5>
+                                            <p>Min speed determines how much you slow down for corners. Higher values maintain momentum but risk sliding. Lower values give better grip but lose time.</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Track Strategy</h5>
+                                            <ul>
+                                                <li><strong>Hairpins:</strong> Use lower minimum speed</li>
+                                                <li><strong>Sweepers:</strong> Can use higher minimum speed</li>
+                                                <li><strong>Stop-and-go:</strong> Need very low minimum</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div id="minspeed-advanced" class="education-tab-panel">
+                                        <div class="education-section">
+                                            <h5>Traction Circle Theory</h5>
+                                            <div class="formula">min_speed ∝ sqrt(grip × gravity × min_radius)</div>
+                                            <p style="font-style: italic; color: #cbd5e1;">Physics principle - test to find your actual limits</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Control Stability</h5>
+                                            <ul>
+                                                <li><strong>Lower bound:</strong> Related to lookahead and response time</li>
+                                                <li><strong>Steering authority:</strong> Must maintain steering effectiveness</li>
+                                                <li><strong>Typical range:</strong> Small fraction of max speed</li>
+                                            </ul>
+                                            <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Too low may cause control issues</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span class="slider-name">
+                                Max Speed (m/s)
+                                <span class="help-icon">?
+                                    <div class="help-tooltip">
+                                        The absolute top speed your car can reach on straights. This is your speed limiter - the car won't exceed this even with perfect conditions.
+                                    </div>
+                                </span>
+                            </span>
+                            <span class="slider-value" id="maxSpeedValue">1.2</span>
+                        </div>
+                        <input type="range" class="slider" id="maxSpeedSlider" min="0.16" max="8.0" step="0.1" value="1.2">
+
+                        <!-- Education Panel for Max Speed -->
+                        <div class="education-panel" id="maxSpeedEducation">
+                            <div class="education-toggle" onclick="toggleEducationPanel('maxSpeedEducation')">
+                                <span class="education-toggle-text">
+                                    📚 Learn about Maximum Speed
+                                </span>
+                                <span class="education-toggle-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchEducationTab('maxspeed', 'beginner', this)">Beginner</div>
+                                    <div class="education-tab" onclick="switchEducationTab('maxspeed', 'intermediate', this)">Intermediate</div>
+                                    <div class="education-tab" onclick="switchEducationTab('maxspeed', 'advanced', this)">Advanced</div>
+                                </div>
+                                <div class="education-tab-content">
+                                    <div id="maxspeed-beginner" class="education-tab-panel active">
+                                        <div class="education-section">
+                                            <h5>What is Maximum Speed?</h5>
+                                            <p>Think of it as your car's speed limiter. Even on the longest straight with perfect conditions, your car won't go faster than this.</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Risk vs Reward</h5>
+                                            <ul>
+                                                <li><strong>Safe approach:</strong> Lower maximum for easier control</li>
+                                                <li><strong>Competitive:</strong> Moderate maximum for good lap times</li>
+                                                <li><strong>Expert level:</strong> High maximum requires perfect tuning</li>
+                                            </ul>
+                                            <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Start conservative and build up gradually</p>
+                                        </div>
+                                    </div>
+                                    <div id="maxspeed-intermediate" class="education-tab-panel">
+                                        <div class="education-section">
+                                            <h5>System Limitations</h5>
+                                            <p>Max speed must respect your control system's ability to react. Higher speeds need better tuned parameters and faster control loops.</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Progressive Training</h5>
+                                            <ul>
+                                                <li><strong>Stage 1:</strong> Master control at low speed</li>
+                                                <li><strong>Stage 2:</strong> Gradually increase and retune</li>
+                                                <li><strong>Stage 3:</strong> Push towards higher speeds</li>
+                                                <li><strong>Each stage:</strong> Adjust other parameters</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div id="maxspeed-advanced" class="education-tab-panel">
+                                        <div class="education-section">
+                                            <h5>Control Bandwidth Limits</h5>
+                                            <div class="formula">max_speed ∝ lookahead / control_period</div>
+                                            <p style="font-style: italic; color: #cbd5e1;">Speed limited by control system response time</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Scaling Relationships</h5>
+                                            <ul>
+                                                <li><strong>Lookahead:</strong> Should scale with max speed</li>
+                                                <li><strong>Angular velocity:</strong> May need reduction at high speed</li>
+                                                <li><strong>Safety margin:</strong> Stay below physical limits</li>
+                                            </ul>
+                                            <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Leave safety margin below theoretical maximum</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span class="slider-name">
+                                Max Angular Velocity (rad/s)
+                                <span class="help-icon">?
+                                    <div class="help-tooltip">
+                                        How fast your car can turn/rotate. Higher values allow sharper turns but can cause spinning. It's the rotational speed limit.
+                                    </div>
+                                </span>
+                            </span>
+                            <span class="slider-value" id="maxAngularValue">1.5</span>
+                        </div>
+                        <input type="range" class="slider" id="maxAngularSlider" min="0.3" max="15.0" step="0.1" value="1.5">
+
+                        <!-- Education Panel for Max Angular Velocity -->
+                        <div class="education-panel" id="maxAngularEducation">
+                            <div class="education-toggle" onclick="toggleEducationPanel('maxAngularEducation')">
+                                <span class="education-toggle-text">
+                                    📚 Learn about Max Angular Velocity
+                                </span>
+                                <span class="education-toggle-arrow">▼</span>
+                            </div>
+                            <div class="education-content">
+                                <div class="education-tabs">
+                                    <div class="education-tab active" onclick="switchEducationTab('maxangular', 'beginner', this)">Beginner</div>
+                                    <div class="education-tab" onclick="switchEducationTab('maxangular', 'intermediate', this)">Intermediate</div>
+                                    <div class="education-tab" onclick="switchEducationTab('maxangular', 'advanced', this)">Advanced</div>
+                                </div>
+                                <div class="education-tab-content">
+                                    <div id="maxangular-beginner" class="education-tab-panel active">
+                                        <div class="education-section">
+                                            <h5>What is Angular Velocity?</h5>
+                                            <p>It's how fast your car can spin or turn. Like the difference between a gentle turn and yanking the steering wheel - this limits how aggressively you can change direction.</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Finding Your Range</h5>
+                                            <ul>
+                                                <li><strong>Smooth:</strong> Lower values for gentle, stable turns</li>
+                                                <li><strong>Normal:</strong> Moderate values for good responsiveness</li>
+                                                <li><strong>Aggressive:</strong> Higher values for quick direction changes</li>
+                                            </ul>
+                                            <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Higher values increase risk of spinning</p>
+                                        </div>
+                                    </div>
+                                    <div id="maxangular-intermediate" class="education-tab-panel">
+                                        <div class="education-section">
+                                            <h5>Stability vs Agility</h5>
+                                            <p>Higher angular velocity allows quicker reactions but risks oversteer and spinning. Lower values are stable but may not make tight corners.</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Speed-Dependent Tuning</h5>
+                                            <ul>
+                                                <li><strong>Low speed:</strong> Can handle higher angular velocity</li>
+                                                <li><strong>High speed:</strong> Reduce to prevent spinning</li>
+                                                <li><strong>Principle:</strong> Angular velocity inversely related to speed</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div id="maxangular-advanced" class="education-tab-panel">
+                                        <div class="education-section">
+                                            <h5>Vehicle Dynamics</h5>
+                                            <div class="formula">angular_velocity = linear_velocity / turn_radius</div>
+                                            <p style="font-style: italic; color: #cbd5e1;">Fundamental relationship - test with your robot</p>
+                                        </div>
+                                        <div class="education-section">
+                                            <h5>Physical Limits</h5>
+                                            <ul>
+                                                <li><strong>Grip limit:</strong> Keep within tire adhesion range</li>
+                                                <li><strong>Yaw rate:</strong> Limited by physics and speed</li>
+                                                <li><strong>Safety factor:</strong> Stay well below theoretical maximum</li>
+                                            </ul>
+                                            <p style="margin-top: 10px; font-style: italic; color: #f59e0b; font-weight: 500;">⚠️ Test incrementally - spinning loses control</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button and Lock Status -->
+                <div class="submit-section" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #2d3748;">
+                    <div id="lockStatus" style="display: none; background: #f6ad55; color: #1a202c; padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-weight: bold;">
+                        🔒 Parameters LOCKED by Supervisor - No changes allowed
+                    </div>
+                    <button id="submitButton" class="submit-btn" style="width: 100%; padding: 25px 20px; background: linear-gradient(135deg, #00ff88, #00bbff); color: #1a202c; border: none; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; transition: all 0.3s; min-height: 70px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);">
+                        <span style="font-size: 24px;">📤</span>
+                        <span>Submit Parameters</span>
+                    </button>
+                    <div id="submitStatus" style="margin-top: 15px; padding: 15px; text-align: center; color: #00ff88; font-size: 18px; font-weight: 600; background: rgba(0, 255, 136, 0.1); border-radius: 10px; border: 2px solid transparent; transition: all 0.3s; min-height: 55px; display: flex; align-items: center; justify-content: center;"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+
+        // Complete list of all countries with flags
+        const countries = [
+            { name: "Afghanistan", flag: "🇦🇫" },
+            { name: "Albania", flag: "🇦🇱" },
+            { name: "Algeria", flag: "🇩🇿" },
+            { name: "Andorra", flag: "🇦🇩" },
+            { name: "Angola", flag: "🇦🇴" },
+            { name: "Antigua and Barbuda", flag: "🇦🇬" },
+            { name: "Argentina", flag: "🇦🇷" },
+            { name: "Armenia", flag: "🇦🇲" },
+            { name: "Australia", flag: "🇦🇺" },
+            { name: "Austria", flag: "🇦🇹" },
+            { name: "Azerbaijan", flag: "🇦🇿" },
+            { name: "Bahamas", flag: "🇧🇸" },
+            { name: "Bahrain", flag: "🇧🇭" },
+            { name: "Bangladesh", flag: "🇧🇩" },
+            { name: "Barbados", flag: "🇧🇧" },
+            { name: "Belarus", flag: "🇧🇾" },
+            { name: "Belgium", flag: "🇧🇪" },
+            { name: "Belize", flag: "🇧🇿" },
+            { name: "Benin", flag: "🇧🇯" },
+            { name: "Bhutan", flag: "🇧🇹" },
+            { name: "Bolivia", flag: "🇧🇴" },
+            { name: "Bosnia and Herzegovina", flag: "🇧🇦" },
+            { name: "Botswana", flag: "🇧🇼" },
+            { name: "Brazil", flag: "🇧🇷" },
+            { name: "Brunei", flag: "🇧🇳" },
+            { name: "Bulgaria", flag: "🇧🇬" },
+            { name: "Burkina Faso", flag: "🇧🇫" },
+            { name: "Burundi", flag: "🇧🇮" },
+            { name: "Cambodia", flag: "🇰🇭" },
+            { name: "Cameroon", flag: "🇨🇲" },
+            { name: "Canada", flag: "🇨🇦" },
+            { name: "Cape Verde", flag: "🇨🇻" },
+            { name: "Central African Republic", flag: "🇨🇫" },
+            { name: "Chad", flag: "🇹🇩" },
+            { name: "Chile", flag: "🇨🇱" },
+            { name: "China", flag: "🇨🇳" },
+            { name: "Colombia", flag: "🇨🇴" },
+            { name: "Comoros", flag: "🇰🇲" },
+            { name: "Congo", flag: "🇨🇬" },
+            { name: "Costa Rica", flag: "🇨🇷" },
+            { name: "Croatia", flag: "🇭🇷" },
+            { name: "Cuba", flag: "🇨🇺" },
+            { name: "Cyprus", flag: "🇨🇾" },
+            { name: "Czech Republic", flag: "🇨🇿" },
+            { name: "Democratic Republic of Congo", flag: "🇨🇩" },
+            { name: "Denmark", flag: "🇩🇰" },
+            { name: "Djibouti", flag: "🇩🇯" },
+            { name: "Dominica", flag: "🇩🇲" },
+            { name: "Dominican Republic", flag: "🇩🇴" },
+            { name: "East Timor", flag: "🇹🇱" },
+            { name: "Ecuador", flag: "🇪🇨" },
+            { name: "Egypt", flag: "🇪🇬" },
+            { name: "El Salvador", flag: "🇸🇻" },
+            { name: "Equatorial Guinea", flag: "🇬🇶" },
+            { name: "Eritrea", flag: "🇪🇷" },
+            { name: "Estonia", flag: "🇪🇪" },
+            { name: "Eswatini", flag: "🇸🇿" },
+            { name: "Ethiopia", flag: "🇪🇹" },
+            { name: "Fiji", flag: "🇫🇯" },
+            { name: "Finland", flag: "🇫🇮" },
+            { name: "France", flag: "🇫🇷" },
+            { name: "Gabon", flag: "🇬🇦" },
+            { name: "Gambia", flag: "🇬🇲" },
+            { name: "Georgia", flag: "🇬🇪" },
+            { name: "Germany", flag: "🇩🇪" },
+            { name: "Ghana", flag: "🇬🇭" },
+            { name: "Greece", flag: "🇬🇷" },
+            { name: "Grenada", flag: "🇬🇩" },
+            { name: "Guatemala", flag: "🇬🇹" },
+            { name: "Guinea", flag: "🇬🇳" },
+            { name: "Guinea-Bissau", flag: "🇬🇼" },
+            { name: "Guyana", flag: "🇬🇾" },
+            { name: "Haiti", flag: "🇭🇹" },
+            { name: "Honduras", flag: "🇭🇳" },
+            { name: "Hungary", flag: "🇭🇺" },
+            { name: "Iceland", flag: "🇮🇸" },
+            { name: "India", flag: "🇮🇳" },
+            { name: "Indonesia", flag: "🇮🇩" },
+            { name: "Iran", flag: "🇮🇷" },
+            { name: "Iraq", flag: "🇮🇶" },
+            { name: "Ireland", flag: "🇮🇪" },
+            { name: "Israel", flag: "🇮🇱" },
+            { name: "Italy", flag: "🇮🇹" },
+            { name: "Ivory Coast", flag: "🇨🇮" },
+            { name: "Jamaica", flag: "🇯🇲" },
+            { name: "Japan", flag: "🇯🇵" },
+            { name: "Jordan", flag: "🇯🇴" },
+            { name: "Kazakhstan", flag: "🇰🇿" },
+            { name: "Kenya", flag: "🇰🇪" },
+            { name: "Kiribati", flag: "🇰🇮" },
+            { name: "Kosovo", flag: "🇽🇰" },
+            { name: "Kuwait", flag: "🇰🇼" },
+            { name: "Kyrgyzstan", flag: "🇰🇬" },
+            { name: "Laos", flag: "🇱🇦" },
+            { name: "Latvia", flag: "🇱🇻" },
+            { name: "Lebanon", flag: "🇱🇧" },
+            { name: "Lesotho", flag: "🇱🇸" },
+            { name: "Liberia", flag: "🇱🇷" },
+            { name: "Libya", flag: "🇱🇾" },
+            { name: "Liechtenstein", flag: "🇱🇮" },
+            { name: "Lithuania", flag: "🇱🇹" },
+            { name: "Luxembourg", flag: "🇱🇺" },
+            { name: "Madagascar", flag: "🇲🇬" },
+            { name: "Malawi", flag: "🇲🇼" },
+            { name: "Malaysia", flag: "🇲🇾" },
+            { name: "Maldives", flag: "🇲🇻" },
+            { name: "Mali", flag: "🇲🇱" },
+            { name: "Malta", flag: "🇲🇹" },
+            { name: "Marshall Islands", flag: "🇲🇭" },
+            { name: "Mauritania", flag: "🇲🇷" },
+            { name: "Mauritius", flag: "🇲🇺" },
+            { name: "Mexico", flag: "🇲🇽" },
+            { name: "Micronesia", flag: "🇫🇲" },
+            { name: "Moldova", flag: "🇲🇩" },
+            { name: "Monaco", flag: "🇲🇨" },
+            { name: "Mongolia", flag: "🇲🇳" },
+            { name: "Montenegro", flag: "🇲🇪" },
+            { name: "Morocco", flag: "🇲🇦" },
+            { name: "Mozambique", flag: "🇲🇿" },
+            { name: "Myanmar", flag: "🇲🇲" },
+            { name: "Namibia", flag: "🇳🇦" },
+            { name: "Nauru", flag: "🇳🇷" },
+            { name: "Nepal", flag: "🇳🇵" },
+            { name: "Netherlands", flag: "🇳🇱" },
+            { name: "New Zealand", flag: "🇳🇿" },
+            { name: "Nicaragua", flag: "🇳🇮" },
+            { name: "Niger", flag: "🇳🇪" },
+            { name: "Nigeria", flag: "🇳🇬" },
+            { name: "North Korea", flag: "🇰🇵" },
+            { name: "North Macedonia", flag: "🇲🇰" },
+            { name: "Norway", flag: "🇳🇴" },
+            { name: "Oman", flag: "🇴🇲" },
+            { name: "Pakistan", flag: "🇵🇰" },
+            { name: "Palau", flag: "🇵🇼" },
+            { name: "Palestine", flag: "🇵🇸" },
+            { name: "Panama", flag: "🇵🇦" },
+            { name: "Papua New Guinea", flag: "🇵🇬" },
+            { name: "Paraguay", flag: "🇵🇾" },
+            { name: "Peru", flag: "🇵🇪" },
+            { name: "Philippines", flag: "🇵🇭" },
+            { name: "Poland", flag: "🇵🇱" },
+            { name: "Portugal", flag: "🇵🇹" },
+            { name: "Qatar", flag: "🇶🇦" },
+            { name: "Romania", flag: "🇷🇴" },
+            { name: "Russia", flag: "🇷🇺" },
+            { name: "Rwanda", flag: "🇷🇼" },
+            { name: "Saint Kitts and Nevis", flag: "🇰🇳" },
+            { name: "Saint Lucia", flag: "🇱🇨" },
+            { name: "Saint Vincent and the Grenadines", flag: "🇻🇨" },
+            { name: "Samoa", flag: "🇼🇸" },
+            { name: "San Marino", flag: "🇸🇲" },
+            { name: "Sao Tome and Principe", flag: "🇸🇹" },
+            { name: "Saudi Arabia", flag: "🇸🇦" },
+            { name: "Senegal", flag: "🇸🇳" },
+            { name: "Serbia", flag: "🇷🇸" },
+            { name: "Seychelles", flag: "🇸🇨" },
+            { name: "Sierra Leone", flag: "🇸🇱" },
+            { name: "Singapore", flag: "🇸🇬" },
+            { name: "Slovakia", flag: "🇸🇰" },
+            { name: "Slovenia", flag: "🇸🇮" },
+            { name: "Solomon Islands", flag: "🇸🇧" },
+            { name: "Somalia", flag: "🇸🇴" },
+            { name: "South Africa", flag: "🇿🇦" },
+            { name: "South Korea", flag: "🇰🇷" },
+            { name: "South Sudan", flag: "🇸🇸" },
+            { name: "Spain", flag: "🇪🇸" },
+            { name: "Sri Lanka", flag: "🇱🇰" },
+            { name: "Sudan", flag: "🇸🇩" },
+            { name: "Suriname", flag: "🇸🇷" },
+            { name: "Sweden", flag: "🇸🇪" },
+            { name: "Switzerland", flag: "🇨🇭" },
+            { name: "Syria", flag: "🇸🇾" },
+            { name: "Taiwan", flag: "🇹🇼" },
+            { name: "Tajikistan", flag: "🇹🇯" },
+            { name: "Tanzania", flag: "🇹🇿" },
+            { name: "Thailand", flag: "🇹🇭" },
+            { name: "Togo", flag: "🇹🇬" },
+            { name: "Tonga", flag: "🇹🇴" },
+            { name: "Trinidad and Tobago", flag: "🇹🇹" },
+            { name: "Tunisia", flag: "🇹🇳" },
+            { name: "Turkey", flag: "🇹🇷" },
+            { name: "Turkmenistan", flag: "🇹🇲" },
+            { name: "Tuvalu", flag: "🇹🇻" },
+            { name: "Uganda", flag: "🇺🇬" },
+            { name: "Ukraine", flag: "🇺🇦" },
+            { name: "United Arab Emirates", flag: "🇦🇪" },
+            { name: "United Kingdom", flag: "🇬🇧" },
+            { name: "United States", flag: "🇺🇸" },
+            { name: "Uruguay", flag: "🇺🇾" },
+            { name: "Uzbekistan", flag: "🇺🇿" },
+            { name: "Vanuatu", flag: "🇻🇺" },
+            { name: "Vatican City", flag: "🇻🇦" },
+            { name: "Venezuela", flag: "🇻🇪" },
+            { name: "Vietnam", flag: "🇻🇳" },
+            { name: "Yemen", flag: "🇾🇪" },
+            { name: "Zambia", flag: "🇿🇲" },
+            { name: "Zimbabwe", flag: "🇿🇼" }
+        ];
+
+        // Firebase configuration for training-after-winning project
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_5keKPoc3lmxolZdLZosZa9heQPBaXls",
+            authDomain: "training-after-winning.firebaseapp.com",
+            databaseURL: "https://training-after-winning-default-rtdb.firebaseio.com",
+            projectId: "training-after-winning",
+            storageBucket: "training-after-winning.appspot.com",
+            messagingSenderId: "688977650774",
+            appId: "1:688977650774:web:8c9f3e8f9f0e1e2e3e4e5e"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Education Panel Functions
+        function toggleEducationPanel(panelId) {
+            const panel = document.getElementById(panelId);
+            if (panel) {
+                panel.classList.toggle('expanded');
+            }
+        }
+
+        function switchEducationTab(parameterName, level, tabElement) {
+            // Get parent tab container
+            const tabContainer = tabElement.parentElement;
+            const contentContainer = tabContainer.nextElementSibling;
+
+            // Remove active class from all tabs
+            tabContainer.querySelectorAll('.education-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Add active to clicked tab
+            tabElement.classList.add('active');
+
+            // Hide all panels
+            contentContainer.querySelectorAll('.education-tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+
+            // Show selected panel
+            const selectedPanel = document.getElementById(`${parameterName}-${level}`);
+            if (selectedPanel) {
+                selectedPanel.classList.add('active');
+            }
+        }
+
+        // Firebase references
+        const queueRef = database.ref('queue');
+        const activeStudentsRef = database.ref('active_students');
+        const supervisorRef = database.ref('supervisor');
+
+        // State management
+        let appState = {
+            status: 'registering', // registering, waiting, active
+            studentId: null,
+            studentName: null,
+            studentCountry: null,
+            selectedCountryObj: null,
+            carNumber: null,
+            firebaseListeners: [],
+            demoMode: false
+        };
+
+        // Expose to window for debugging/testing
+        window.appState = appState;
+
+        // Generate unique student ID
+        function generateStudentId() {
+            return 'STU' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
+        }
+
+        // DOM Elements
+        const registrationModal = document.getElementById('registrationModal');
+        const waitingRoom = document.getElementById('waitingRoom');
+        const controlPanel = document.getElementById('controlPanel');
+        const connectionBar = document.getElementById('connectionBar');
+        const connectionWarning = document.getElementById('connectionWarning');
+        const countryInput = document.getElementById('studentCountry');
+        const countryList = document.getElementById('countryList');
+
+        // Country autocomplete setup
+        let selectedCountryIndex = -1;
+
+        function setupCountryAutocomplete() {
+            countryInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                selectedCountryIndex = -1;
+
+                if (searchTerm.length === 0) {
+                    countryList.classList.remove('active');
+                    return;
+                }
+
+                const filteredCountries = countries.filter(country =>
+                    country.name.toLowerCase().includes(searchTerm)
+                );
+
+                if (filteredCountries.length > 0) {
+                    displayCountryList(filteredCountries);
+                    countryList.classList.add('active');
+                } else {
+                    countryList.classList.remove('active');
+                }
+            });
+
+            countryInput.addEventListener('keydown', (e) => {
+                const items = countryList.querySelectorAll('.autocomplete-item');
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedCountryIndex = Math.min(selectedCountryIndex + 1, items.length - 1);
+                    updateSelectedItem(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedCountryIndex = Math.max(selectedCountryIndex - 1, -1);
+                    updateSelectedItem(items);
+                } else if (e.key === 'Enter' && selectedCountryIndex >= 0) {
+                    e.preventDefault();
+                    const selectedItem = items[selectedCountryIndex];
+                    if (selectedItem) {
+                        selectCountry(selectedItem.dataset.country, selectedItem.dataset.flag);
+                    }
+                } else if (e.key === 'Escape') {
+                    countryList.classList.remove('active');
+                }
+            });
+
+            countryInput.addEventListener('blur', () => {
+                // Delay to allow click events on list items
+                setTimeout(() => {
+                    countryList.classList.remove('active');
+                }, 200);
+            });
+
+            countryInput.addEventListener('focus', (e) => {
+                if (e.target.value.length > 0) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const filteredCountries = countries.filter(country =>
+                        country.name.toLowerCase().includes(searchTerm)
+                    );
+                    if (filteredCountries.length > 0) {
+                        displayCountryList(filteredCountries);
+                        countryList.classList.add('active');
+                    }
+                }
+            });
+        }
+
+        function displayCountryList(countryArray) {
+            countryList.innerHTML = '';
+            countryArray.slice(0, 10).forEach((country, index) => { // Show max 10 at a time
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.dataset.country = country.name;
+                item.dataset.flag = country.flag;
+                item.innerHTML = `
+                    <span class="country-flag">${country.flag}</span>
+                    <span>${country.name}</span>
+                `;
+                item.addEventListener('click', () => {
+                    selectCountry(country.name, country.flag);
+                });
+                countryList.appendChild(item);
+            });
+        }
+
+        function updateSelectedItem(items) {
+            items.forEach((item, index) => {
+                if (index === selectedCountryIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function selectCountry(name, flag) {
+            countryInput.value = name;
+            appState.selectedCountryObj = { name, flag };
+            countryList.classList.remove('active');
+            selectedCountryIndex = -1;
+        }
+
+        // Initialize country autocomplete
+        setupCountryAutocomplete();
+
+        // Registration form handling
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('studentName').value.trim();
+            const countryValue = countryInput.value.trim();
+            const experience = document.getElementById('experience').value;
+
+            if (!name || !countryValue) {
+                return;
+            }
+
+            // Validate that country exists
+            const countryObj = countries.find(c => c.name.toLowerCase() === countryValue.toLowerCase());
+            if (!countryObj) {
+                document.getElementById('countryError').style.display = 'block';
+                return;
+            }
+
+            // Disable submit button
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').textContent = 'Registering...';
+
+            // Store student info
+            appState.studentId = generateStudentId();
+            appState.studentName = name;
+            appState.studentCountry = countryObj.name;
+            appState.selectedCountryObj = countryObj;
+
+            // Save session data
+            saveSessionData();
+
+            // Register student in Firebase
+            registerStudent(name, countryObj, experience);
+        });
+
+        // Firebase registration and listeners
+        async function registerStudent(name, countryObj, experience) {
+            try {
+                // Write to Firebase queue
+                const studentData = {
+                    studentId: appState.studentId,
+                    name: name,
+                    country: countryObj.name,
+                    flag: countryObj.flag,
+                    experience: experience,
+                    registrationTime: firebase.database.ServerValue.TIMESTAMP,
+                    status: 'waiting',
+                    position: null
+                };
+
+                await queueRef.child(appState.studentId).set(studentData);
+
+                console.log('Registered in Firebase queue');
+                connectionBar.className = 'connection-bar connected';
+                connectionWarning.classList.add('hidden');
+
+                // Store student data in app state for listeners
+                appState.studentData = studentData;
+
+                // Setup listeners
+                setupFirebaseListeners();
+
+                // Show waiting room
+                showWaitingRoom();
+
+            } catch (error) {
+                console.error('Firebase registration error:', error);
+                connectionBar.className = 'connection-bar error';
+                connectionWarning.classList.remove('hidden');
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').textContent = 'Join Waiting Room';
+            }
+        }
+
+        function setupFirebaseListeners() {
+            // Clean up existing listeners
+            appState.firebaseListeners.forEach(ref => ref.off());
+            appState.firebaseListeners = [];
+
+            // STATE MACHINE PATTERN - Industry best practice for distributed systems
+            // Single source of truth: student_states node
+            const studentStateRef = firebase.database().ref(`student_states/${appState.studentId}`);
+
+            // Initialize with PENDING state when registering
+            studentStateRef.set({
+                state: 'PENDING',
+                timestamp: Date.now(),
+                name: appState.studentData.name
+            });
+
+            // SINGLE LISTENER - No race conditions, no inference needed
+            studentStateRef.on('value', (snapshot) => {
+                const stateData = snapshot.val();
+                if (!stateData) return;
+
+                console.log(`Student state: ${stateData.state}`);
+
+                // State machine transitions
+                switch(stateData.state) {
+                    case 'PENDING':
+                        // Student is waiting for approval
+                        if (appState.status !== 'waiting') {
+                            showWaitingRoom();
+                        }
+                        break;
+
+                    case 'APPROVED':
+                        // Student was approved!
+                        if (appState.status === 'waiting') {
+                            console.log(`Student APPROVED! Car number: ${stateData.carNumber}`);
+                            handleApproval({
+                                approved: true,
+                                carNumber: stateData.carNumber || 1,
+                                sessionTime: 300
+                            });
+
+                        }
+                        break;
+
+                    case 'REJECTED':
+                        // Student was rejected
+                        if (appState.status === 'waiting') {
+                            console.log(`Student REJECTED: ${stateData.reason || 'Session at capacity'}`);
+                            handleRejection();
+                        }
+                        break;
+
+                    case 'REMOVED':
+                        // Student was removed by supervisor
+                        console.log('Student REMOVED by supervisor');
+                        handleRemovalBySupervisor();
+                        break;
+
+                    default:
+                        console.warn(`Unknown state: ${stateData.state}`);
+                }
+            });
+            appState.firebaseListeners.push(studentStateRef);
+
+            // Still listen to queue for UI updates (position in queue, etc.)
+            const studentQueueRef = queueRef.child(appState.studentId);
+            studentQueueRef.on('value', (snapshot) => {
+                if (snapshot.val()) {
+                    handleQueueUpdate(snapshot.val());
+                }
+            });
+            appState.firebaseListeners.push(studentQueueRef);
+
+            // Listen for all active students (to show in waiting room)
+            activeStudentsRef.on('value', (snapshot) => {
+                const activeStudents = snapshot.val() || {};
+                updateActiveRacersFromFirebase(activeStudents);
+            });
+            appState.firebaseListeners.push(activeStudentsRef);
+
+            // Listen for queue size
+            queueRef.on('value', (snapshot) => {
+                const queue = snapshot.val() || {};
+                const queueArray = Object.values(queue);
+                const waitingCount = queueArray.filter(s => s.status === 'waiting').length;
+                const activeCount = queueArray.filter(s => s.status === 'active').length;
+
+                // Find our position
+                let position = '-';
+                const waitingStudents = queueArray
+                    .filter(s => s.status === 'waiting')
+                    .sort((a, b) => a.registrationTime - b.registrationTime);
+
+                const ourIndex = waitingStudents.findIndex(s => s.studentId === appState.studentId);
+                if (ourIndex >= 0) {
+                    position = ourIndex + 1;
+                }
+
+                updateQueueInfo({
+                    position: position,
+                    waitingCount: waitingCount,
+                    activeCount: activeCount,
+                    estimatedWait: position === '-' ? '-' : `${position * 5} min`
+                });
+            });
+            appState.firebaseListeners.push(queueRef);
+
+            // Listen for supervisor messages
+            supervisorRef.child('messages').on('child_added', (snapshot) => {
+                const message = snapshot.val();
+                if (message && message.timestamp > Date.now() - 60000) { // Only recent messages
+                    handleSupervisorMessage(message);
+                }
+            });
+        }
+
+
+        function handleQueueUpdate(data) {
+            if (data.status === 'rejected') {
+                alert('Your request was rejected: ' + (data.reason || 'Please try again later'));
+                cleanupAndReload();
+            }
+        }
+
+        function handleSupervisorMessage(message) {
+            if (message.type === 'session_ending' && message.studentId === appState.studentId) {
+                const remaining = message.remainingTime || 60;
+                console.log(`Session ending in ${remaining} seconds`);
+
+            }
+        }
+
+        function updateActiveRacersFromFirebase(activeStudents) {
+            const racers = [];
+            for (let i = 1; i <= 5; i++) {
+                let racer = null;
+                for (const [studentId, studentData] of Object.entries(activeStudents)) {
+                    // Show any student assigned to this car, not just active ones
+                    if (studentData.carNumber === i) {
+                        racer = {
+                            name: studentData.name,
+                            country: studentData.country,
+                            flag: studentData.flag
+                        };
+                        break;
+                    }
+                }
+                racers.push(racer);
+            }
+            updateActiveRacers(racers);
+        }
+
+        // Cleanup and reload
+        function cleanupAndReload() {
+            // Remove from Firebase
+            if (appState.studentId) {
+                queueRef.child(appState.studentId).remove();
+                activeStudentsRef.child(appState.studentId).remove();
+            }
+
+            // Clean up listeners
+            appState.firebaseListeners.forEach(ref => ref.off());
+
+            // Clear local storage
+            localStorage.removeItem('racingStudentData');
+
+            // Reload page
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        // Show waiting room
+        function showWaitingRoom() {
+            appState.status = 'waiting';
+            registrationModal.classList.add('hidden');
+            waitingRoom.classList.add('active');
+        }
+
+        // Handle approval from supervisor
+        // Handle removal by supervisor - send back to waiting room with message
+        function handleRemovalBySupervisor() {
+            console.log('Handling removal by supervisor - sending back to registration');
+
+            // Clean up Firebase listeners first
+            appState.firebaseListeners.forEach(ref => ref.off());
+            appState.firebaseListeners = [];
+
+            // Clear all application state
+            appState.status = 'removed';
+            appState.studentId = null;
+            appState.studentData = null;
+            appState.carNumber = null;
+            appState.locked = false;
+
+            // Hide all screens
+            if (controlPanel.classList.contains('active')) {
+                controlPanel.classList.remove('active');
+            }
+            if (waitingRoom.classList.contains('active')) {
+                waitingRoom.classList.remove('active');
+            }
+
+            // Simply reload to reset everything cleanly - this sends them back to registration
+            console.log('Reloading page to reset to registration screen');
+            setTimeout(() => {
+                location.reload();
+            }, 100);  // Small delay to ensure state cleanup
+            return;  // Don't execute the rest
+            waitingRoom.innerHTML = `
+                <div class="waiting-container" style="
+                    text-align: center;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 40px;
+                    background: linear-gradient(135deg, rgba(30, 30, 40, 0.95), rgba(40, 40, 50, 0.95));
+                    backdrop-filter: blur(10px);
+                    border-radius: 20px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                    animation: slideIn 0.5s ease-out;
+                ">
+                    <div style="font-size: 4em; margin-bottom: 20px; animation: bounce 1s ease-in-out;">🏁</div>
+                    <h2 style="
+                        font-size: 2em;
+                        margin-bottom: 20px;
+                        background: linear-gradient(45deg, #fbbf24, #f59e0b);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                    ">Session Ended</h2>
+                    <p style="
+                        color: #e2e8f0;
+                        margin-bottom: 15px;
+                        font-size: 1.1em;
+                        line-height: 1.6;
+                    ">
+                        Your racing session has been ended by the supervisor.
+                        This may be to free up the car for other students.
+                    </p>
+                    <p style="
+                        color: #94a3b8;
+                        margin-bottom: 30px;
+                        font-size: 0.95em;
+                    ">
+                        Thank you for participating! You can rejoin the queue if spots are available.
+                    </p>
+                    <button onclick="location.reload()" style="
+                        padding: 15px 30px;
+                        background: linear-gradient(135deg, #00ff88, #00bbff);
+                        color: #1a202c;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 18px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: all 0.3s;
+                        box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+                    "
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 255, 136, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 255, 136, 0.3)';">
+                        🔄 Rejoin Queue
+                    </button>
+                </div>
+
+                <style>
+                    @keyframes slideIn {
+                        from { opacity: 0; transform: translateY(20px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    @keyframes bounce {
+                        0%, 100% { transform: translateY(0); }
+                        50% { transform: translateY(-10px); }
+                    }
+                </style>
+            `;
+
+            // Clean up Firebase listeners but don't remove from queue yet
+            // They can choose to rejoin
+        }
+
+        // Handle rejection from supervisor
+        function handleRejection() {
+            console.log('Student rejected by supervisor');
+            appState.status = 'rejected';
+
+            // Show beautiful rejection message
+            waitingRoom.innerHTML = `
+                <div class="waiting-container" style="
+                    text-align: center;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 40px;
+                    background: linear-gradient(135deg, rgba(30, 30, 40, 0.95), rgba(40, 40, 50, 0.95));
+                    backdrop-filter: blur(10px);
+                    border-radius: 20px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                    animation: slideIn 0.5s ease-out;
+                ">
+                    <div style="
+                        width: 100px;
+                        height: 100px;
+                        margin: 0 auto 30px;
+                        background: linear-gradient(135deg, #ff6b6b, #ff4444);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 10px 30px rgba(255, 68, 68, 0.3);
+                        animation: pulse 2s ease-in-out infinite;
+                    ">
+                        <span style="font-size: 48px;">⚠️</span>
+                    </div>
+
+                    <h1 style="
+                        font-size: 2.5em;
+                        margin: 0 0 20px 0;
+                        background: linear-gradient(135deg, #ff6b6b, #ff8787);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                        font-weight: 700;
+                        letter-spacing: -1px;
+                    ">Session at Capacity</h1>
+
+                    <p style="
+                        font-size: 1.1em;
+                        color: var(--text-tertiary);
+                        margin: 0 0 30px 0;
+                        line-height: 1.6;
+                    ">
+                        The current training session has reached maximum capacity.
+                        Your application has been queued for the next available slot.
+                    </p>
+
+                    <div style="
+                        background: rgba(255, 255, 255, 0.05);
+                        border-radius: 15px;
+                        padding: 25px;
+                        margin: 30px 0;
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                    ">
+                        <h3 style="
+                            margin: 0 0 15px 0;
+                            color: #00ff88;
+                            font-size: 1.2em;
+                            font-weight: 600;
+                        ">Possible Reasons</h3>
+
+                        <div style="
+                            display: grid;
+                            gap: 12px;
+                            text-align: left;
+                        ">
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                color: var(--text-tertiary);
+                            ">
+                                <span style="
+                                    width: 8px;
+                                    height: 8px;
+                                    border-radius: 50%;
+                                    background: #00ff88;
+                                    margin-right: 12px;
+                                    flex-shrink: 0;
+                                "></span>
+                                All 5 racing slots are currently occupied
+                            </div>
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                color: var(--text-tertiary);
+                            ">
+                                <span style="
+                                    width: 8px;
+                                    height: 8px;
+                                    border-radius: 50%;
+                                    background: #00bbff;
+                                    margin-right: 12px;
+                                    flex-shrink: 0;
+                                "></span>
+                                Training session time limit reached
+                            </div>
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                color: var(--text-tertiary);
+                            ">
+                                <span style="
+                                    width: 8px;
+                                    height: 8px;
+                                    border-radius: 50%;
+                                    background: #fbbf24;
+                                    margin-right: 12px;
+                                    flex-shrink: 0;
+                                "></span>
+                                Instructor prioritizing other participants
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="
+                        display: flex;
+                        gap: 15px;
+                        justify-content: center;
+                        margin-top: 40px;
+                    ">
+                        <button onclick="location.reload()" style="
+                            padding: 15px 40px;
+                            font-size: 1.1em;
+                            font-weight: 600;
+                            border: none;
+                            border-radius: 30px;
+                            background: linear-gradient(135deg, #00ff88, #00bbff);
+                            color: #0a0a0a;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+                        "
+                        onmouseover="this.style.transform='translateY(-2px) scale(1.05)'; this.style.boxShadow='0 15px 40px rgba(0, 255, 136, 0.3)'"
+                        onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 10px 30px rgba(0, 255, 136, 0.2)'">
+                            Try Again
+                        </button>
+
+                        <button onclick="window.close()" style="
+                            padding: 15px 40px;
+                            font-size: 1.1em;
+                            font-weight: 600;
+                            border: 2px solid rgba(255, 255, 255, 0.2);
+                            border-radius: 30px;
+                            background: transparent;
+                            color: var(--text-secondary);
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        "
+                        onmouseover="this.style.borderColor='rgba(255, 255, 255, 0.4)'; this.style.color='#aaa'"
+                        onmouseout="this.style.borderColor='rgba(255, 255, 255, 0.2)'; this.style.color='#888'">
+                            Exit
+                        </button>
+                    </div>
+
+                    <p style="
+                        margin-top: 30px;
+                        font-size: 0.9em;
+                        color: var(--text-secondary);
+                        font-style: italic;
+                    ">
+                        💡 Tip: Check back in a few minutes as slots may become available
+                    </p>
+                </div>
+
+                <style>
+                    @keyframes slideIn {
+                        from {
+                            opacity: 0;
+                            transform: translateY(20px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+
+                    @keyframes pulse {
+                        0%, 100% {
+                            transform: scale(1);
+                        }
+                        50% {
+                            transform: scale(1.05);
+                        }
+                    }
+                </style>
+            `;
+
+            // Clean up Firebase data
+            if (appState.studentId) {
+                queueRef.child(appState.studentId).remove();
+                activeStudentsRef.child(appState.studentId).remove();
+            }
+
+            // Clear local storage after delay
+            setTimeout(() => {
+                localStorage.removeItem('racingStudentData');
+            }, 2000);
+        }
+
+        // Handle approval from supervisor
+        function handleApproval(data) {
+            if (data.approved) {
+                appState.status = 'active';
+                appState.carNumber = data.carNumber;
+                appState.locked = false; // Initialize lock status
+
+                // Move to control panel
+                waitingRoom.classList.remove('active');
+                controlPanel.classList.add('active');
+
+                document.getElementById('carNumber').textContent = data.carNumber;
+                setupParameterControls();
+            } else {
+                alert('Your request was not approved. ' + (data.reason || 'Please try again later.'));
+                location.reload();
+            }
+        }
+
+        // Function to update parameter visibility (simplified for Pure Pursuit only)
+        function updateStudentParameterVisibility() {
+            // Pure Pursuit is always visible, no need to hide/show anything
+            const selectedAlgorithm = 'pure_pursuit';
+            console.log('Pure Pursuit algorithm active');
+        }
+
+        // Make function global so it can be called from HTML
+        window.updateStudentParameterVisibility = updateStudentParameterVisibility;
+
+        // Setup parameter controls
+        function setupParameterControls() {
+            const sliders = {
+                targetSpeed: { element: document.getElementById('targetSpeedSlider'), decimals: 1 },
+                minSpeed: { element: document.getElementById('minSpeedSlider'), decimals: 2 },
+                maxSpeed: { element: document.getElementById('maxSpeedSlider'), decimals: 1 },
+                lookahead: { element: document.getElementById('lookaheadSlider'), decimals: 1 },
+                minLookahead: { element: document.getElementById('minLookaheadSlider'), decimals: 1 },
+                maxLookahead: { element: document.getElementById('maxLookaheadSlider'), decimals: 1 },
+                lookaheadGain: { element: document.getElementById('lookaheadGainSlider'), decimals: 1 },
+                waypointTolerance: { element: document.getElementById('waypointToleranceSlider'), decimals: 1 },
+                maxAngular: { element: document.getElementById('maxAngularSlider'), decimals: 1 }
+            };
+
+            // Update slider values without immediate Firebase updates
+            Object.keys(sliders).forEach(key => {
+                const slider = sliders[key];
+                if (slider.element) {
+                    // Regular input event for value updates
+                    slider.element.addEventListener('input', (e) => {
+                        const value = parseFloat(e.target.value);
+                        document.getElementById(key + 'Value').textContent = value.toFixed(slider.decimals);
+                    });
+
+                    // Touch optimization: Prevent page scroll when touching slider
+                    slider.element.addEventListener('touchstart', (e) => {
+                        e.stopPropagation(); // Prevent event bubbling
+                    }, { passive: true });
+
+                    // Add visual feedback on touch
+                    slider.element.addEventListener('touchstart', () => {
+                        slider.element.style.transform = 'scale(1.02)';
+                    });
+
+                    slider.element.addEventListener('touchend', () => {
+                        slider.element.style.transform = 'scale(1)';
+                    });
+                }
+            });
+
+            // Setup submit button
+            setupSubmitButton();
+
+            // Listen for lock status changes from supervisor
+            listenForLockStatus();
+            listenForEmergencyTelemetry();
+        }
+
+        // Setup submit button handler
+        function setupSubmitButton() {
+            const submitButton = document.getElementById('submitButton');
+            const submitStatus = document.getElementById('submitStatus');
+
+            if (!submitButton) return;
+
+            submitButton.addEventListener('click', async () => {
+                if (!appState.studentId || appState.locked) {
+                    console.error('Cannot submit: No student ID or parameters are locked');
+                    return;
+                }
+
+                // Gather parameters for Pure Pursuit
+                const selectedAlgorithm = 'pure_pursuit';
+
+                // Include all parameters
+                const parameters = {
+                    algorithm: selectedAlgorithm,
+                    target_speed: parseFloat(document.getElementById('targetSpeedSlider').value),
+                    min_speed: parseFloat(document.getElementById('minSpeedSlider').value),
+                    max_speed: parseFloat(document.getElementById('maxSpeedSlider').value),
+                    max_angular_velocity: parseFloat(document.getElementById('maxAngularSlider').value),
+                    // Pure Pursuit parameters
+                    lookahead_distance: parseFloat(document.getElementById('lookaheadSlider').value),
+                    lookahead: parseFloat(document.getElementById('lookaheadSlider').value), // Compatibility
+                    min_lookahead: parseFloat(document.getElementById('minLookaheadSlider').value),
+                    max_lookahead: parseFloat(document.getElementById('maxLookaheadSlider').value),
+                    lookahead_gain: parseFloat(document.getElementById('lookaheadGainSlider').value),
+                    waypoint_tolerance: parseFloat(document.getElementById('waypointToleranceSlider').value)
+                };
+
+                // Visual feedback
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span style="font-size: 24px;">⏳</span> <span>Submitting...</span>';
+                submitButton.style.background = 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+                submitStatus.textContent = '';
+
+                try {
+                    // Update Firebase with new parameters
+                    const updates = {};
+                    updates[`active_students/${appState.studentId}/parameters`] = parameters;
+                    updates[`active_students/${appState.studentId}/lastSubmission`] = Date.now();
+
+                    await firebase.database().ref().update(updates);
+
+                    // Success feedback
+                    submitButton.innerHTML = '<span style="font-size: 24px;">✅</span> <span>Submitted!</span>';
+                    submitButton.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    submitStatus.textContent = '✨ Parameters submitted successfully!';
+                    submitStatus.style.color = '#00ff88';
+                    submitStatus.style.background = 'rgba(0, 255, 136, 0.15)';
+                    submitStatus.style.borderColor = '#00ff88';
+
+                    // Reset button after 2 seconds
+                    setTimeout(() => {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = '<span style="font-size: 24px;">📤</span> <span>Submit Parameters</span>';
+                        submitButton.style.background = 'linear-gradient(135deg, #00ff88, #00bbff)';
+                    }, 2000);
+
+                    // Clear status after 5 seconds
+                    setTimeout(() => {
+                        submitStatus.textContent = '';
+                        submitStatus.style.background = 'rgba(0, 255, 136, 0.1)';
+                        submitStatus.style.borderColor = 'transparent';
+                    }, 5000);
+
+                } catch (error) {
+                    console.error('Error submitting parameters:', error);
+                    submitButton.innerHTML = '<span style="font-size: 24px;">❌</span> <span>Failed</span>';
+                    submitButton.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    submitStatus.textContent = '⚠️ Submission failed. Please try again.';
+                    submitStatus.style.color = '#ff4444';
+                    submitStatus.style.background = 'rgba(255, 68, 68, 0.15)';
+                    submitStatus.style.borderColor = '#ff4444';
+
+                    setTimeout(() => {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = '<span style="font-size: 24px;">📤</span> <span>Submit Parameters</span>';
+                        submitButton.style.background = 'linear-gradient(135deg, #00ff88, #00bbff)';
+                    }, 2000);
+                }
+            });
+        }
+
+        // Listen for lock status changes from supervisor
+        function listenForLockStatus() {
+            if (!appState.studentId) return;
+
+            const studentRef = firebase.database().ref(`active_students/${appState.studentId}`);
+            studentRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                const isLocked = data.locked === true;
+                const submitButton = document.getElementById('submitButton');
+                const lockStatus = document.getElementById('lockStatus');
+                const algorithmSelect = document.getElementById('algorithmSelect');
+                const sliders = [
+                    'kpSlider', 'kiSlider', 'kdSlider',
+                    'targetSpeedSlider', 'minSpeedSlider', 'maxSpeedSlider',
+                    'lookaheadSlider', 'minLookaheadSlider', 'maxLookaheadSlider',
+                    'lookaheadGainSlider', 'waypointToleranceSlider', 'maxAngularSlider'
+                ];
+
+                appState.locked = isLocked;
+
+                if (isLocked) {
+                    // Show lock overlay
+                    showLockOverlay();
+
+                    // Update UI elements
+                    if (lockStatus) lockStatus.style.display = 'block';
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.innerHTML = '🔒 Locked by Supervisor';
+                        submitButton.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
+                    }
+
+                    // Disable all controls
+                    sliders.forEach(id => {
+                        const slider = document.getElementById(id);
+                        if (slider) slider.disabled = true;
+                    });
+                    if (algorithmSelect) algorithmSelect.disabled = true;
+
+                } else {
+                    // Hide lock overlay
+                    hideLockOverlay();
+
+                    // Update UI elements
+                    if (lockStatus) lockStatus.style.display = 'none';
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = '<span style="font-size: 24px;">📤</span> <span>Submit Parameters</span>';
+                        submitButton.style.background = 'linear-gradient(135deg, #00ff88, #00bbff)';
+                    }
+
+                    // Enable all controls
+                    sliders.forEach(id => {
+                        const slider = document.getElementById(id);
+                        if (slider) slider.disabled = false;
+                    });
+                    if (algorithmSelect) algorithmSelect.disabled = false;
+                }
+
+                // Update algorithm selection if changed by supervisor
+                if (data.parameters && data.parameters.algorithm && algorithmSelect) {
+                    algorithmSelect.value = data.parameters.algorithm;
+                    updateStudentParameterVisibility(); // Update visible parameter sections
+                }
+
+                // Update all parameter sliders if changed by supervisor
+                if (data.parameters) {
+                    const params = data.parameters;
+
+                    // Update common parameters (all algorithms)
+                    if (params.target_speed !== undefined) {
+                        const slider = document.getElementById('targetSpeedSlider');
+                        const display = document.getElementById('targetSpeedValue');
+                        if (slider) {
+                            slider.value = params.target_speed;
+                            if (display) display.textContent = params.target_speed.toFixed(1);
+                        }
+                    }
+
+                    if (params.min_speed !== undefined) {
+                        const slider = document.getElementById('minSpeedSlider');
+                        const display = document.getElementById('minSpeedValue');
+                        if (slider) {
+                            slider.value = params.min_speed;
+                            if (display) display.textContent = params.min_speed.toFixed(2);
+                        }
+                    }
+
+                    if (params.max_speed !== undefined) {
+                        const slider = document.getElementById('maxSpeedSlider');
+                        const display = document.getElementById('maxSpeedValue');
+                        if (slider) {
+                            slider.value = params.max_speed;
+                            if (display) display.textContent = params.max_speed.toFixed(1);
+                        }
+                    }
+
+                    if (params.max_angular_velocity !== undefined) {
+                        const slider = document.getElementById('maxAngularSlider');
+                        const display = document.getElementById('maxAngularValue');
+                        if (slider) {
+                            slider.value = params.max_angular_velocity;
+                            if (display) display.textContent = params.max_angular_velocity.toFixed(1);
+                        }
+                    }
+
+                    // Update Pure Pursuit parameters
+                    if (params.lookahead_distance !== undefined || params.lookahead !== undefined) {
+                        const value = params.lookahead_distance || params.lookahead;
+                        const slider = document.getElementById('lookaheadSlider');
+                        const display = document.getElementById('lookaheadValue');
+                        if (slider) {
+                            slider.value = value;
+                            if (display) display.textContent = value.toFixed(1);
+                        }
+                    }
+
+                    if (params.min_lookahead !== undefined) {
+                        const slider = document.getElementById('minLookaheadSlider');
+                        const display = document.getElementById('minLookaheadValue');
+                        if (slider) {
+                            slider.value = params.min_lookahead;
+                            if (display) display.textContent = params.min_lookahead.toFixed(1);
+                        }
+                    }
+
+                    if (params.max_lookahead !== undefined) {
+                        const slider = document.getElementById('maxLookaheadSlider');
+                        const display = document.getElementById('maxLookaheadValue');
+                        if (slider) {
+                            slider.value = params.max_lookahead;
+                            if (display) display.textContent = params.max_lookahead.toFixed(1);
+                        }
+                    }
+
+                    if (params.lookahead_gain !== undefined) {
+                        const slider = document.getElementById('lookaheadGainSlider');
+                        const display = document.getElementById('lookaheadGainValue');
+                        if (slider) {
+                            slider.value = params.lookahead_gain;
+                            if (display) display.textContent = params.lookahead_gain.toFixed(1);
+                        }
+                    }
+
+                    if (params.waypoint_tolerance !== undefined) {
+                        const slider = document.getElementById('waypointToleranceSlider');
+                        const display = document.getElementById('waypointToleranceValue');
+                        if (slider) {
+                            slider.value = params.waypoint_tolerance;
+                            if (display) display.textContent = params.waypoint_tolerance.toFixed(1);
+                        }
+                    }
+
+                    // Update PID parameters
+                    if (params.kp !== undefined) {
+                        const slider = document.getElementById('kpSlider');
+                        const display = document.getElementById('kpValue');
+                        if (slider) {
+                            slider.value = params.kp;
+                            if (display) display.textContent = params.kp.toFixed(1);
+                        }
+                    }
+
+                    if (params.ki !== undefined) {
+                        const slider = document.getElementById('kiSlider');
+                        const display = document.getElementById('kiValue');
+                        if (slider) {
+                            slider.value = params.ki;
+                            if (display) display.textContent = params.ki.toFixed(2);
+                        }
+                    }
+
+                    if (params.kd !== undefined) {
+                        const slider = document.getElementById('kdSlider');
+                        const display = document.getElementById('kdValue');
+                        if (slider) {
+                            slider.value = params.kd;
+                            if (display) display.textContent = params.kd.toFixed(2);
+                        }
+                    }
+
+                    // Update Stanley parameters
+                    if (params.stanley_gain !== undefined) {
+                        const slider = document.getElementById('stanleyGainSlider');
+                        const display = document.getElementById('stanleyGainValue');
+                        if (slider) {
+                            slider.value = params.stanley_gain;
+                            if (display) display.textContent = params.stanley_gain.toFixed(1);
+                        }
+                    }
+
+                    if (params.stanley_soft_gain !== undefined) {
+                        const slider = document.getElementById('stanleySoftGainSlider');
+                        const display = document.getElementById('stanleySoftGainValue');
+                        if (slider) {
+                            slider.value = params.stanley_soft_gain;
+                            if (display) display.textContent = params.stanley_soft_gain.toFixed(1);
+                        }
+                    }
+
+                    // Visual feedback that parameters were updated
+                    const submitStatus = document.getElementById('submitStatus');
+                    if (submitStatus) {
+                        submitStatus.textContent = '📥 Parameters updated by Supervisor';
+                        submitStatus.style.color = '#fbbf24';
+                        submitStatus.style.background = 'rgba(251, 191, 36, 0.15)';
+                        submitStatus.style.borderColor = '#fbbf24';
+                        setTimeout(() => {
+                            submitStatus.textContent = '';
+                            submitStatus.style.background = 'rgba(0, 255, 136, 0.1)';
+                            submitStatus.style.borderColor = 'transparent';
+                        }, 3000);
+                    }
+                }
+
+                // Update emergency status display from parameters
+                if (data.parameters) {
+                    const emergencyEnabled = data.parameters.emergency_enabled || false;
+                    console.log('Emergency enabled from parameters:', emergencyEnabled);
+
+                    const emergencyPanel = document.getElementById('emergencyStatusPanel');
+                    const emergencyIndicator = document.getElementById('emergencyIndicator');
+                    const emergencyStatusText = document.getElementById('emergencyStatusText');
+
+                    if (emergencyPanel) {
+                        // Show/hide panel based on emergency status
+                        emergencyPanel.style.display = emergencyEnabled ? 'block' : 'none';
+                        console.log('Set emergency panel display to:', emergencyEnabled ? 'block' : 'none');
+
+                        // Update indicator
+                        if (emergencyIndicator) {
+                            emergencyIndicator.className = emergencyEnabled ?
+                                'emergency-status-indicator enabled' :
+                                'emergency-status-indicator';
+                        }
+
+                        // Update status text
+                        if (emergencyStatusText) {
+                            emergencyStatusText.textContent = emergencyEnabled ? 'ENABLED' : 'DISABLED';
+                            emergencyStatusText.className = emergencyEnabled ?
+                                'emergency-status-text normal' :
+                                'emergency-status-text';
+                        }
+
+                        // Store emergency enabled state globally
+                        appState.emergencyEnabled = emergencyEnabled;
+                    }
+                }
+            });
+        }
+
+        // Listen for emergency telemetry updates
+        function listenForEmergencyTelemetry() {
+            if (!appState.studentId || !appState.carNumber) return;
+
+            console.log('Starting emergency telemetry listener for car', appState.carNumber);
+
+            // Listen to telemetry updates from Firebase
+            const telemetryRef = firebase.database().ref(`telemetry/car_${appState.carNumber}`);
+            telemetryRef.on('value', (snapshot) => {
+                const telemetry = snapshot.val();
+                if (!telemetry) {
+                    console.log('No telemetry data received');
+                    return;
+                }
+
+                console.log('Telemetry received:', telemetry);
+                updateEmergencyDisplay(telemetry);
+            });
+        }
+
+        // Update emergency display with telemetry data
+        function updateEmergencyDisplay(telemetry) {
+            // Check both telemetry and appState for emergency enabled
+            const emergencyEnabled = telemetry.emergency_enabled || appState.emergencyEnabled || false;
+            const emergencyActive = telemetry.emergency_active || false;
+            const emergencyStatus = telemetry.emergency_status || {};
+
+            console.log('Emergency display update:', {
+                enabled: emergencyEnabled,
+                active: emergencyActive,
+                status: emergencyStatus,
+                appStateEnabled: appState.emergencyEnabled
+            });
+
+            // Update emergency panel visibility and status
+            const emergencyPanel = document.getElementById('emergencyStatusPanel');
+            const emergencyIndicator = document.getElementById('emergencyIndicator');
+            const emergencyStatusText = document.getElementById('emergencyStatusText');
+            const emergencyBanner = document.getElementById('emergencyBanner');
+
+            if (!emergencyEnabled) {
+                // Hide everything if emergency is disabled
+                console.log('Emergency disabled, hiding panel');
+                if (emergencyPanel) emergencyPanel.style.display = 'none';
+                if (emergencyBanner) emergencyBanner.classList.remove('active');
+                return;
+            }
+
+            // Show emergency panel
+            if (emergencyPanel) {
+                emergencyPanel.style.display = 'block';
+                emergencyPanel.classList.toggle('active', emergencyActive);
+            }
+
+            // Update emergency banner
+            if (emergencyBanner) {
+                emergencyBanner.classList.toggle('active', emergencyActive);
+            }
+
+            // Update indicator
+            if (emergencyIndicator) {
+                emergencyIndicator.className = emergencyActive ?
+                    'emergency-status-indicator active' :
+                    'emergency-status-indicator enabled';
+            }
+
+            // Update status text
+            if (emergencyStatusText) {
+                if (emergencyActive) {
+                    emergencyStatusText.textContent = 'EMERGENCY';
+                    emergencyStatusText.className = 'emergency-status-text emergency';
+                } else if (emergencyStatus.in_grace_period) {
+                    emergencyStatusText.textContent = 'RECOVERY';
+                    emergencyStatusText.className = 'emergency-status-text warning';
+                } else {
+                    emergencyStatusText.textContent = 'MONITORING';
+                    emergencyStatusText.className = 'emergency-status-text normal';
+                }
+            }
+
+            // Update metrics if emergency status exists
+            if (emergencyStatus) {
+                // Update emergency state
+                const emergencyState = document.getElementById('emergencyState');
+                if (emergencyState) {
+                    if (emergencyActive) {
+                        emergencyState.textContent = emergencyStatus.stuck_type || 'ESCAPING';
+                        emergencyState.style.color = '#ff4444';
+                    } else if (emergencyStatus.in_grace_period) {
+                        emergencyState.textContent = 'Grace Period';
+                        emergencyState.style.color = '#fbbf24';
+                    } else {
+                        emergencyState.textContent = 'Normal';
+                        emergencyState.style.color = '#00ff88';
+                    }
+                }
+
+                // Update movement speed (from telemetry)
+                const movementSpeed = document.getElementById('movementSpeed');
+                if (movementSpeed && telemetry.speed !== undefined) {
+                    movementSpeed.textContent = `${telemetry.speed.toFixed(2)} m/s`;
+                }
+
+                // Update stuck events counter
+                const stuckEvents = document.getElementById('stuckEvents');
+                if (stuckEvents && emergencyStatus.total_events !== undefined) {
+                    stuckEvents.textContent = emergencyStatus.total_events;
+                }
+
+                // Update stuck meter (detection progress)
+                const stuckMeterFill = document.getElementById('stuckMeterFill');
+                if (stuckMeterFill) {
+                    // Calculate progress percentage (0-100%)
+                    let progress = 0;
+                    if (emergencyActive) {
+                        progress = 100; // Full when emergency is active
+                    } else if (emergencyStatus.position_history_size && emergencyStatus.position_history_size > 0) {
+                        // Show build-up progress (assuming 13 samples needed for detection)
+                        progress = Math.min(100, (emergencyStatus.position_history_size / 13) * 100);
+                    }
+                    stuckMeterFill.style.width = `${progress}%`;
+                }
+            }
+        }
+
+        // Show lock overlay
+        function showLockOverlay() {
+            // Remove existing overlay if present
+            const existing = document.querySelector('.lock-overlay');
+            if (existing) return;
+
+            const lockOverlay = document.createElement('div');
+            lockOverlay.className = 'lock-overlay active';
+            lockOverlay.innerHTML = `
+                <div class="lock-message">
+                    <div class="lock-icon">🔒</div>
+                    <div class="lock-text">Parameters Locked by Supervisor</div>
+                    <div class="lock-subtext">No changes allowed until supervisor unlocks</div>
+                </div>
+            `;
+            document.getElementById('controlPanel').appendChild(lockOverlay);
+        }
+
+        // Hide lock overlay
+        function hideLockOverlay() {
+            const overlay = document.querySelector('.lock-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+
+
+        // Update queue information
+        function updateQueueInfo(data) {
+            // Check if elements exist before updating (they might be replaced during rejection)
+            const queuePos = document.getElementById('queuePosition');
+            const waitingCnt = document.getElementById('waitingCount');
+            const activeCnt = document.getElementById('activeCount');
+            const estWait = document.getElementById('estimatedWait');
+
+            if (queuePos) queuePos.textContent = data.position || '-';
+            if (waitingCnt) waitingCnt.textContent = data.waitingCount || 0;
+            if (activeCnt) activeCnt.textContent = data.activeCount || 0;
+            if (estWait) estWait.textContent = data.estimatedWait || '-';
+        }
+
+        // Update active racers display
+        function updateActiveRacers(racers) {
+            racers.forEach((racer, index) => {
+                const card = document.querySelector(`[data-car="${index + 1}"]`);
+                if (card) {
+                    if (racer) {
+                        card.classList.remove('empty');
+                        card.classList.add('active');
+                        card.querySelector('.racer-name').textContent = racer.name;
+                        card.querySelector('.racer-country').textContent = `${racer.flag} ${racer.country}`;
+                    } else {
+                        card.classList.add('empty');
+                        card.classList.remove('active');
+                        card.querySelector('.racer-name').textContent = `Car ${index + 1}`;
+                        card.querySelector('.racer-country').textContent = 'Empty';
+                    }
+                }
+            });
+        }
+
+
+        // Initialize connection bar
+        connectionBar.className = 'connection-bar connecting';
+
+        // Check for existing session on page load
+        window.addEventListener('load', () => {
+            // Display deployment timestamp
+            const deployTime = new Date();
+            const updateTimeElement = document.getElementById('updateTime');
+            if (updateTimeElement) {
+                const timeString = deployTime.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                updateTimeElement.textContent = timeString;
+            }
+
+            const savedData = localStorage.getItem('racingStudentData');
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    appState.studentId = data.studentId;
+                    appState.studentName = data.name;
+                    appState.studentCountry = data.country;
+                    appState.selectedCountryObj = data.selectedCountryObj;
+
+                    // Check if still in queue or active
+                    queueRef.child(appState.studentId).once('value', (snapshot) => {
+                        const queueData = snapshot.val();
+                        if (queueData) {
+                            setupFirebaseListeners();
+                            showWaitingRoom();
+                            connectionBar.className = 'connection-bar connected';
+                        } else {
+                            // Check if active
+                            activeStudentsRef.child(appState.studentId).once('value', (snapshot) => {
+                                const activeData = snapshot.val();
+                                if (activeData && activeData.active) {
+                                    setupFirebaseListeners();
+                                    handleApproval({
+                                        approved: true,
+                                        carNumber: activeData.carNumber,
+                                        sessionTime: 300
+                                    });
+                                    connectionBar.className = 'connection-bar connected';
+                                } else {
+                                    // Session expired
+                                    localStorage.removeItem('racingStudentData');
+                                }
+                            });
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading saved session:', error);
+                    localStorage.removeItem('racingStudentData');
+                }
+            }
+
+            // Setup connection monitoring
+            database.ref('.info/connected').on('value', (snapshot) => {
+                const connected = snapshot.val();
+                if (connected) {
+                    connectionBar.className = 'connection-bar connected';
+                    connectionWarning.classList.add('hidden');
+                } else {
+                    connectionBar.className = 'connection-bar error';
+                    connectionWarning.classList.remove('hidden');
+                }
+            });
+        });
+
+        // Save session data when registering
+        function saveSessionData() {
+            if (appState.studentId) {
+                localStorage.setItem('racingStudentData', JSON.stringify({
+                    studentId: appState.studentId,
+                    name: appState.studentName,
+                    country: appState.studentCountry,
+                    selectedCountryObj: appState.selectedCountryObj
+                }));
+            }
+        }
+    </script>
+</body>
+</html>
